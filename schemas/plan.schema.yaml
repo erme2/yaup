@@ -1,0 +1,17 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: Yaup plan record
+type: object
+required: [schema_version, id, title, status, approval, scope, implementation_steps, verification_plan, risks, completion]
+properties:
+  schema_version: {const: 1}
+  id: {type: string, minLength: 1}
+  title: {type: string, minLength: 1}
+  status: {enum: [proposed, approved, in_progress, completed, blocked]}
+  approval:
+    type: object
+    required: [approved, approver, approved_at, approval_commit]
+  scope: {type: object}
+  implementation_steps: {type: array}
+  verification_plan: {type: array}
+  risks: {type: array}
+  completion: {type: object}

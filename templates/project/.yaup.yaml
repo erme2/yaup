@@ -1,0 +1,28 @@
+schema_version: 1
+yaup:
+  repository: erme2/yaup
+  version: v0.1.0
+rule_overrides: {}
+validation:
+  focused-tests:
+    command: REPLACE_ME
+  full-tests:
+    command: REPLACE_ME
+  lint:
+    command: REPLACE_ME
+  format:
+    command: REPLACE_ME
+  static-analysis:
+    command: REPLACE_ME
+  production-build:
+    command: REPLACE_ME
+  browser-ui-verification:
+    exemption:
+      reason: REPLACE_ME
+      expires: '2099-01-01'
+  bug-regression-test:
+    command: REPLACE_ME
+  feature-tests:
+    command: REPLACE_ME
+  security-audit:
+    command: REPLACE_ME

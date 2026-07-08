@@ -1,0 +1,39 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  php:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['8.2', '8.3', '8.4', '8.5']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - run: composer test
+      - run: composer analyse
+      - run: composer format:check
+      - run: composer validate:composer
+      - run: composer audit
+  release-artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+      - run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+      - run: php tools/build-phar.php
+      - run: shasum -a 256 dist/yaup.phar > dist/yaup.phar.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yaup-release
+          path: dist/

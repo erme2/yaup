@@ -1,0 +1,39 @@
+{
+    "name": "erme2/yaup",
+    "description": "Policy, planning, and execution controls for AI coding CLIs",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.2",
+        "symfony/console": "^7.2|^8.0",
+        "symfony/filesystem": "^7.2|^8.0",
+        "symfony/process": "^7.2|^8.0",
+        "symfony/yaml": "^7.2|^8.0"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.80",
+        "phpstan/phpstan": "^2.1",
+        "phpunit/phpunit": "^11.5|^12.0"
+    },
+    "autoload": {
+        "psr-4": {"Yaup\\": "src/"}
+    },
+    "autoload-dev": {
+        "psr-4": {"Yaup\\Tests\\": "tests/"}
+    },
+    "bin": ["bin/yaup"],
+    "scripts": {
+        "test": "phpunit",
+        "analyse": "phpstan analyse --debug --no-progress --memory-limit=1G",
+        "format": "php-cs-fixer fix --sequential",
+        "format:check": "php-cs-fixer fix --dry-run --diff --sequential",
+        "check": ["@validate:composer", "@test", "@analyse", "@format:check"],
+        "validate:composer": "composer validate --strict"
+    },
+    "config": {
+        "allow-plugins": false,
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

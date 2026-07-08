@@ -1,0 +1,30 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: Yaup project configuration
+type: object
+required: [schema_version, yaup, validation]
+properties:
+  schema_version: {const: 1}
+  yaup:
+    type: object
+    required: [repository, version]
+    properties:
+      repository: {type: string, minLength: 1}
+      version: {type: string, pattern: '^v[0-9]+\.[0-9]+\.[0-9]+$'}
+  rule_overrides: {type: object}
+  validation:
+    type: object
+    additionalProperties:
+      oneOf:
+        - type: object
+          required: [command]
+          properties: {command: {type: string, minLength: 1}}
+        - type: object
+          required: [exemption]
+          properties:
+            exemption:
+              type: object
+              required: [reason, expires]
+              properties:
+                reason: {type: string, minLength: 1}
+                expires: {type: string, format: date}
+additionalProperties: false

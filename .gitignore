@@ -1,3 +1,10 @@
 .idea/
 repos/
 .DS_Store
+/vendor/
+/.phpunit.cache/
+/.phpstan-cache/
+/.php-cs-fixer.cache
+/.yaup.local.yaml
+/dist/
+.DS_Store

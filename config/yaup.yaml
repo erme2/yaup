@@ -1,0 +1,25 @@
+schema_version: 1
+distribution_repository: erme2/yaup
+projects_directory: repos
+registry_file: config/repositories.yaml
+plans_directory: plans
+policies_directory: policies
+local_preferences_file: .yaup.local.yaml
+native_instructions:
+  - AGENTS.md
+  - CLAUDE.md
+  - GEMINI.md
+  - .github/copilot-instructions.md
+  - .cursor/rules/**/*.md
+  - .cursorrules
+mandatory_validation_categories:
+  - focused-tests
+  - full-tests
+  - lint
+  - format
+  - static-analysis
+  - production-build
+  - browser-ui-verification
+  - bug-regression-test
+  - feature-tests
+  - security-audit

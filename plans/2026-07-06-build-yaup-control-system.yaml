@@ -1,7 +1,7 @@
 schema_version: 1
 id: 2026-07-06-build-yaup-control-system
 title: Build the yaup AI control system
-status: approved
+status: completed
 
 approval:
   approved: true
@@ -172,10 +172,49 @@ risks:
   - Browser UI verification is not applicable to the control CLI and will require a reasoned exemption for this project.
 
 completion:
-  completed_at: null
-  summary: null
-  changed_files: []
-  validation_results: []
-  deviations: []
-  unresolved_risks: []
-  next_steps: []
+  completed_at: 2026-07-08T10:42:28+01:00
+  summary: Built the PHP control CLI, canonical policy system, repository registry, Git-backed plan gate, five agent adapters, validation runner, playbooks, schemas, templates, CI, release builder, documentation, and automated tests.
+  changed_files:
+    - .github/workflows/ci.yml
+    - .gitignore
+    - .php-cs-fixer.dist.php
+    - README.md
+    - bin/yaup
+    - composer.json
+    - composer.lock
+    - config/
+    - docs/
+    - phpstan.neon
+    - phpunit.xml.dist
+    - playbooks/
+    - policies/
+    - schemas/
+    - src/
+    - templates/
+    - tests/
+    - tools/
+  validation_results:
+    - PHPUnit passed with 7 tests and 16 assertions.
+    - PHPStan passed at maximum level using sequential debug mode and a 1 GB limit.
+    - PHP-CS-Fixer check passed with no remaining changes.
+    - Composer manifest validation passed.
+    - All PHP files passed syntax checks.
+    - Repository discovery found six projects, registered four remote-backed projects, and excluded two local-only projects from cross-repository CI.
+    - Rule resolution succeeded for repos/burro without modifying project instruction files.
+    - Git-backed approval verification succeeded against commit 6061a33085d5ace0fc245f137bd7adcc04564cc8 before this completion update.
+    - Production PHAR built and reported yaup 0.1.0-dev using production autoload metadata.
+  deviations:
+    - Live Composer advisory lookup was attempted with approved network access but stalled; offline mode had no cached advisory database.
+    - Authenticated real-agent smoke tests were not possible because only Codex is installed locally; adapters for the other four CLIs were validated structurally.
+    - No Node dependencies or shell launchers were introduced, so npm audit and shellcheck were not applicable.
+    - Browser UI verification was not applicable to this CLI-only control repository.
+  unresolved_risks:
+    - Vendor CLI permission flags can change; release qualification must smoke-test each supported CLI version and fail closed on incompatibility.
+    - Private cross-repository download cannot be exercised until the read-only GitHub App and repository secrets exist.
+    - Linux CI and PHP 8.2 through 8.5 remain unverified until GitHub Actions runs; local verification used macOS and PHP 8.5.
+  next_steps:
+    - Human reviews and commits the implementation and completed plan record.
+    - Configure the private erme2/yaup origin and read-only GitHub App.
+    - Run GitHub Actions and resolve any platform or PHP-version differences.
+    - Install and authenticate all five CLIs for release smoke testing.
+    - Tag and publish the first version only after those checks pass.

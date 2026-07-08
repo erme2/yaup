@@ -1,0 +1,23 @@
+schema_version: 1
+id: REPLACE_ME
+title: REPLACE_ME
+status: proposed
+approval:
+  approved: false
+  approver: null
+  approved_at: null
+  approval_commit: null
+scope:
+  included: []
+  excluded: []
+implementation_steps: []
+verification_plan: []
+risks: []
+completion:
+  completed_at: null
+  summary: null
+  changed_files: []
+  validation_results: []
+  deviations: []
+  unresolved_risks: []
+  next_steps: []

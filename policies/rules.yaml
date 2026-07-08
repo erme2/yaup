@@ -1,0 +1,32 @@
+schema_version: 1
+rules:
+  - id: workflow.plan-before-write
+    level: mandatory
+    summary: Inspect read-only, save a plan, and obtain Git-backed human approval before writes.
+  - id: workflow.ask-on-ambiguity
+    level: mandatory
+    summary: Stop and ask when requirements or project conventions are ambiguous.
+  - id: scope.report-nearby-defects
+    level: mandatory
+    summary: Report unrelated defects and wait for authorization before fixing them.
+  - id: quality.behavior-over-tests
+    level: mandatory
+    summary: Treat tests as evidence, not truth; propose fixes to incorrect behavior and incorrect tests together.
+  - id: quality.validate
+    level: mandatory
+    summary: Run every configured validation category and disclose every check that could not run.
+  - id: git.human-by-default
+    level: mandatory
+    summary: Do not branch, commit, push, or open pull requests unless explicitly instructed.
+  - id: security.secrets
+    level: mandatory
+    summary: Never reproduce secrets; redact sensitive values from output and retained metadata.
+  - id: security.no-production
+    level: mandatory
+    summary: Never access deployments or production systems.
+  - id: security.external-disclosure
+    level: mandatory
+    summary: Confirm before sending repository code or data to third-party services.
+  - id: instructions.protected
+    level: mandatory
+    summary: Never generate or modify native project instruction files unless explicitly requested.
