@@ -1,0 +1,181 @@
+schema_version: 1
+id: 2026-07-06-build-yaup-control-system
+title: Build the yaup AI control system
+status: approved
+
+approval:
+  approved: true
+  approver: erme2
+  approved_at: 2026-07-08T10:14:00+01:00
+  approval_commit: null
+
+scope:
+  included:
+    - Build and test the yaup control repository.
+    - Define canonical policies in Markdown and structured rules in YAML.
+    - Implement a PHP 8.2+ CLI using Composer, Symfony Console, and symfony/yaml.
+    - Support Linux and macOS with Node.js 22+ and Git 2.39+ available.
+    - Discover every directory directly under repos as a local project.
+    - Automatically register remote-backed projects and allow unregistered local-only projects.
+    - Resolve global, structured project, nested native, and local personal rules.
+    - Protect native project instruction files from automatic modification.
+    - Mechanically enforce planning before execution for Codex, Claude Code, Cursor, Copilot, and Gemini CLIs.
+    - Persist plans, Git-backed approvals, progress, validation results, deviations, and completion metadata.
+    - Provide playbooks for bug fixes, features, refactors, dependency changes, database migrations, security findings, CI failures, and releases.
+    - Validate project configuration, rule precedence, exemptions, approval history, and release pins.
+    - Add GitHub Actions for the yaup control repository.
+    - Prepare versioned private GitHub releases and per-project integration templates.
+  excluded:
+    - Adding .yaup.yaml or workflows to projects under repos.
+    - Modifying native AI instruction files in projects under repos.
+    - Creating branches, commits, pushes, pull requests, deployments, or production changes.
+    - Installing or configuring a GitHub App.
+    - Publishing a GitHub release.
+
+decisions:
+  supported_agents:
+    - codex
+    - claude-code
+    - cursor
+    - github-copilot
+    - gemini
+  canonical_sources:
+    policy: Markdown
+    configuration: YAML
+  precedence:
+    - Mandatory safety rules cannot be weakened.
+    - Structured project overrides reference stable rule IDs.
+    - Project-specific rules override yaup defaults where permitted.
+    - The stricter applicable rule wins.
+    - Closest nested native instruction applies by directory scope.
+    - Contradictory or ambiguous prose requires human clarification.
+  native_instruction_files:
+    - AGENTS.md
+    - CLAUDE.md
+    - GEMINI.md
+    - .github/copilot-instructions.md
+    - .cursor/rules/**
+    - .cursorrules
+  local_preferences:
+    file: .yaup.local.yaml
+    committed: false
+    may_weaken_shared_rules: false
+  repository_registry:
+    default_distribution_repository: erme2/yaup
+    repository_identity_is_configurable: true
+    add_remote_backed_projects_automatically: true
+    allow_local_projects_without_remote: true
+    include_projects_without_remote_in_cross_repository_ci: false
+  project_integration:
+    files:
+      - .yaup.yaml
+      - small GitHub Actions workflow
+    versioning: exact released version pin
+    private_repository_access: read-only GitHub App
+  retained_data:
+    structured_audit_metadata: true
+    transcripts_by_default: false
+    transcripts_with_explicit_opt_in: true
+
+agent_policy:
+  before_changes:
+    - Inspect in mechanically enforced read-only mode.
+    - Record interpretation, scope, proposed changes, risks, and validation plan.
+    - Wait for explicit human approval recorded in Git history.
+  ambiguity: Stop and ask before proceeding.
+  nearby_defects: Report and wait for explicit instructions before fixing.
+  behavior_vs_tests: Passing tests is not proof of correct behavior; identify flawed implementation and flawed tests, propose a coordinated fix, explain it, and wait for approval.
+  progress_updates:
+    - At meaningful milestones.
+    - Before risky operations.
+    - Whenever blocked or scope changes.
+  scope_change: Reset approval and require human reapproval.
+  default_git_policy:
+    branches: forbidden
+    commits: forbidden
+    pushes: forbidden
+    pull_requests: forbidden
+    exception: Explicit human instruction permits the requested Git operation.
+  production_access: forbidden
+  security:
+    local_env_secret_use: allowed
+    reproduce_secrets_in_output: forbidden
+    redact_sensitive_values: required
+    non_production_remote_services: allowed
+    disclose_code_or_data_to_third_party: requires confirmation
+    fix_security_findings: requires explicit confirmation
+
+validation:
+  mandatory_categories:
+    - focused-tests
+    - full-tests
+    - lint
+    - format
+    - static-analysis
+    - production-build
+    - browser-ui-verification
+    - bug-regression-test
+    - feature-tests
+    - security-audit
+  project_configuration: Commands must be explicitly configured; stack detection only proposes commands.
+  exemptions:
+    allowed: true
+    reason_required: true
+    expiry_required: true
+    expired_exemption_fails_ci: true
+  blocked_validation: Implementation may finish, but every unverified check and reason must be reported without claiming full success.
+
+implementation_steps:
+  - id: scaffold
+    description: Scaffold Composer package, Symfony Console application, autoloading, test configuration, code-quality tools, and GitHub Actions.
+  - id: schemas
+    description: Define schemas and value objects for global configuration, rules, registry entries, project integration, exemptions, and plan records.
+  - id: policies
+    description: Encode the agreed mandatory policies and eight task playbooks in Markdown and YAML with stable rule IDs.
+  - id: discovery
+    description: Implement local repository discovery, remote detection, automatic registry updates, and local-only project handling.
+  - id: resolution
+    description: Implement scoped native-instruction discovery, structured override precedence, mandatory-rule protection, contradiction reporting, and local preference layering.
+  - id: planning
+    description: Implement plan creation, human-editable approval fields, content hashing, Git ancestry verification, progress updates, scope-change invalidation, completion records, and CI validation.
+  - id: adapters
+    description: Implement capability-probed adapters for all five CLIs with hard read-only planning and controlled execution; refuse unsupported or unsafe versions.
+  - id: validation
+    description: Implement explicit validation categories, stack-aware proposals, exemption expiry, command execution, structured results, and final-report generation.
+  - id: distribution
+    description: Add private GitHub release packaging, checksums, configurable repository identity, pinned-version integration templates, and GitHub App documentation.
+  - id: tests
+    description: Add unit, integration, fixture-repository, Git-history, CLI-adapter, security, and end-to-end tests using fake agent executables.
+  - id: documentation
+    description: Document installation, configuration, rule authoring, precedence, project onboarding, agent launching, approvals, CI, releases, GitHub App setup, and operational limitations.
+
+verification_plan:
+  - Run focused PHPUnit tests while implementing each subsystem.
+  - Run the complete PHPUnit suite.
+  - Run PHPStan at the maximum practical strictness.
+  - Run PHP-CS-Fixer in check mode.
+  - Run Composer validation and audit.
+  - Run npm audit if Node dependencies are introduced.
+  - Run shellcheck for shell launchers.
+  - Build release artifacts and verify checksums locally.
+  - Exercise all agent adapters against fake executables.
+  - Probe installed real CLIs where credentials and installations are available; report missing tools as unverified.
+  - Exercise Git-backed plan approval and rejection with fixture repositories.
+  - Verify Linux behavior in GitHub Actions and document macOS verification status.
+
+risks:
+  - Agent CLI flags and permission models change; adapters must probe versions and fail closed.
+  - Arbitrary prose cannot be safely ranked by strictness; contradictions require human resolution.
+  - Git-backed approval requires a committed approval before implementation and may require a multi-commit human workflow.
+  - Cross-repository private access cannot be end-to-end tested until the GitHub App exists.
+  - Real adapter verification depends on installed and authenticated CLIs; only Codex is currently detected locally.
+  - Browser UI verification is not applicable to the control CLI and will require a reasoned exemption for this project.
+
+completion:
+  completed_at: null
+  summary: null
+  changed_files: []
+  validation_results: []
+  deviations: []
+  unresolved_risks: []
+  next_steps: []
