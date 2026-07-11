@@ -42,16 +42,17 @@ final class AgentCommand extends Command
         $loader = new ConfigLoader();
         $config = $loader->load($this->root . '/config/yaup.yaml');
         $projectsDirectory = $config['projects_directory'] ?? 'repos';
-        if (!is_string($projectsDirectory) || '' === $projectsDirectory) {
-            $output->writeln('<error>config/yaup.yaml projects_directory must be a non-empty string.</error>');
+        $registryFile = $config['registry_file'] ?? 'config/repositories.yaml';
+        if (!is_string($projectsDirectory) || '' === $projectsDirectory || !is_string($registryFile) || '' === $registryFile) {
+            $output->writeln('<error>config/yaup.yaml projects_directory and registry_file must be non-empty strings.</error>');
             return Command::FAILURE;
         }
         $project = realpath($projectArgument) ?: $projectArgument;
-        $projectsRoot = realpath($this->root . '/' . $projectsDirectory) ?: $this->root . '/' . $projectsDirectory;
-        if (!$this->isInsideProjectsDirectory($project, $projectsRoot)) {
+        $registeredProjects = $this->registeredProjectPaths($loader, $this->root . '/' . $registryFile);
+        if (!in_array($this->normalizePath($project), $registeredProjects, true)) {
             $output->writeln(sprintf(
-                '<error>Project must be a checkout under %s so humans can inspect changes before Git operations.</error>',
-                $projectsRoot
+                '<error>Project must be a registered checkout in %s so humans can inspect changes before Git operations.</error>',
+                $this->root . '/' . $projectsDirectory
             ));
             return Command::FAILURE;
         }
@@ -80,11 +81,29 @@ final class AgentCommand extends Command
         return $process->run(static fn(string $type, string $data) => $output->write($data));
     }
 
-    private function isInsideProjectsDirectory(string $project, string $projectsRoot): bool
+    /** @return list<string> */
+    private function registeredProjectPaths(ConfigLoader $loader, string $registryPath): array
     {
-        $project = rtrim(str_replace('\\', '/', $project), '/');
-        $projectsRoot = rtrim(str_replace('\\', '/', $projectsRoot), '/');
+        $registry = $loader->load($registryPath);
+        $repositories = $registry['repositories'] ?? [];
+        if (!is_array($repositories)) {
+            return [];
+        }
 
-        return $project === $projectsRoot || str_starts_with($project, $projectsRoot . '/');
+        $paths = [];
+        foreach ($repositories as $repository) {
+            if (!is_array($repository) || !isset($repository['path']) || !is_string($repository['path'])) {
+                continue;
+            }
+
+            $paths[] = $this->normalizePath(realpath($repository['path']) ?: $repository['path']);
+        }
+
+        return array_values(array_unique($paths));
+    }
+
+    private function normalizePath(string $path): string
+    {
+        return rtrim(str_replace('\\', '/', $path), '/');
     }
 }
