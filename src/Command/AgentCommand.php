@@ -39,10 +39,25 @@ final class AgentCommand extends Command
         if (!is_string($agentName) || !is_string($projectArgument) || !is_string($promptArgument)) {
             return Command::INVALID;
         }
-        $agent = (new AdapterRegistry())->get($agentName);
+        $loader = new ConfigLoader();
+        $config = $loader->load($this->root . '/config/yaup.yaml');
+        $projectsDirectory = $config['projects_directory'] ?? 'repos';
+        if (!is_string($projectsDirectory) || '' === $projectsDirectory) {
+            $output->writeln('<error>config/yaup.yaml projects_directory must be a non-empty string.</error>');
+            return Command::FAILURE;
+        }
         $project = realpath($projectArgument) ?: $projectArgument;
+        $projectsRoot = realpath($this->root . '/' . $projectsDirectory) ?: $this->root . '/' . $projectsDirectory;
+        if (!$this->isInsideProjectsDirectory($project, $projectsRoot)) {
+            $output->writeln(sprintf(
+                '<error>Project must be a checkout under %s so humans can inspect changes before Git operations.</error>',
+                $projectsRoot
+            ));
+            return Command::FAILURE;
+        }
+        $agent = (new AdapterRegistry())->get($agentName);
         $prompt = $promptArgument;
-        $resolved = (new RuleResolver(new ConfigLoader()))->resolve($this->root, $project);
+        $resolved = (new RuleResolver($loader))->resolve($this->root, $project);
         $context = "\n\nEffective yaup rules:\n" . json_encode($resolved->rules, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR)
             . "\nNative instruction files (read and obey):\n" . implode("\n", $resolved->nativeFiles);
         if ($input->getOption('execute')) {
@@ -63,5 +78,13 @@ final class AgentCommand extends Command
         $process = new Process($command, $project, null, null, null);
         $process->setTty(Process::isTtySupported());
         return $process->run(static fn(string $type, string $data) => $output->write($data));
+    }
+
+    private function isInsideProjectsDirectory(string $project, string $projectsRoot): bool
+    {
+        $project = rtrim(str_replace('\\', '/', $project), '/');
+        $projectsRoot = rtrim(str_replace('\\', '/', $projectsRoot), '/');
+
+        return $project === $projectsRoot || str_starts_with($project, $projectsRoot . '/');
     }
 }

@@ -6,6 +6,9 @@ rules:
   - id: workflow.ask-on-ambiguity
     level: mandatory
     summary: Stop and ask when requirements or project conventions are ambiguous.
+  - id: workspace.registered-repos-only
+    level: mandatory
+    summary: Perform project work only in the registered checkout under repos/; do not clone or edit project repositories in temporary directories.
   - id: scope.report-nearby-defects
     level: mandatory
     summary: Report unrelated defects and wait for authorization before fixing them.
@@ -20,7 +23,7 @@ rules:
     summary: Run every configured validation category and disclose every check that could not run.
   - id: git.human-by-default
     level: mandatory
-    summary: Do not branch, commit, push, or open pull requests unless explicitly instructed.
+    summary: Leave changes in the visible working tree for human review; do not branch, commit, push, or open pull requests unless explicitly instructed.
   - id: security.secrets
     level: mandatory
     summary: Never reproduce secrets; redact sensitive values from output and retained metadata.
