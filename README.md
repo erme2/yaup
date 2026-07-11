@@ -6,7 +6,7 @@ The name is intentionally literal: **Yaup** means "yet another unfinished projec
 
 ## Requirements
 
-PHP 8.2+, Composer, Node.js 22+, and Git 2.39+ on Linux or macOS.
+PHP 8.5+, Composer, Node.js 22+, and Git 2.39+ on Linux or macOS.
 
 ## Install
 
@@ -25,6 +25,10 @@ bin/yaup list
 6. `bin/yaup validate repos/example` runs every explicitly configured validation category.
 
 The agent must stop on ambiguity, report nearby defects without fixing them, and distinguish correct behavior from tests that merely encode current behavior.
+
+Project work must happen in the registered checkout under `repos/`, for example `repos/burro` for Burro. Agents must not clone or edit project repositories in `/tmp`, `/private/tmp`, or another location where the human cannot see and review the working-tree changes. Git operations remain human-driven unless a specific branch, commit, push, or PR action is explicitly delegated.
+
+Ticket titles must start with `bugfix:`, `hotfix:`, or `feature:`. Use `hotfix:` only for urgent production-impacting corrections, `bugfix:` for normal defects, and `feature:` for new behavior, hardening, chores, and planned improvements.
 
 ## Rule sources and precedence
 
