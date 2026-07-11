@@ -12,6 +12,9 @@ rules:
   - id: quality.behavior-over-tests
     level: mandatory
     summary: Treat tests as evidence, not truth; propose fixes to incorrect behavior and incorrect tests together.
+  - id: quality.human-maintainable-code
+    level: mandatory
+    summary: Write clear, conventional code that a human maintainer can understand, debug, and change; avoid clever, terse, or magical solutions.
   - id: quality.validate
     level: mandatory
     summary: Run every configured validation category and disclose every check that could not run.
