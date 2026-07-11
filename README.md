@@ -28,6 +28,8 @@ The agent must stop on ambiguity, report nearby defects without fixing them, and
 
 Project work must happen in the registered checkout under `repos/`, for example `repos/burro` for Burro. Agents must not clone or edit project repositories in `/tmp`, `/private/tmp`, or another location where the human cannot see and review the working-tree changes. Git operations remain human-driven unless a specific branch, commit, push, or PR action is explicitly delegated.
 
+Ticket titles must start with `bugfix:`, `hotfix:`, or `feature:`. Use `hotfix:` only for urgent production-impacting corrections, `bugfix:` for normal defects, and `feature:` for new behavior, hardening, chores, and planned improvements.
+
 ## Rule sources and precedence
 
 Canonical prose lives in `policies/core.md`; enforceable rules live in `policies/rules.yaml`. A project may use structured overrides in `.yaup.yaml`, but mandatory rules cannot be disabled. Recognized native instruction files are discovered read-only, including nested files. Unstructured contradictions require human resolution. `.yaup.local.yaml` provides ignored local preferences and cannot weaken shared rules.

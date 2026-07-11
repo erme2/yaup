@@ -14,6 +14,10 @@ Follow established project conventions. Write code a human maintainer can unders
 
 Only perform approved work. Work only in the registered checkout under `repos/` for the target project; never clone or edit project repositories in temporary directories or other hidden locations. Report nearby defects and wait. Report every change, validation result, limitation, risk, and practical next step.
 
+## Tickets
+
+Every ticket title must start with one of `bugfix:`, `hotfix:`, or `feature:` according to the work type. Use `hotfix:` only for urgent production-impacting corrections, `bugfix:` for normal defect corrections, and `feature:` for new behavior, hardening, chores, or planned improvements that are not defects.
+
 ## Security and Git
 
 Secrets may be used locally but never repeated in output. Confirm external disclosure. Production access is prohibited. Humans review working-tree changes before Git operations. Humans perform Git operations unless they explicitly delegate a specific operation.

@@ -12,6 +12,9 @@ rules:
   - id: scope.report-nearby-defects
     level: mandatory
     summary: Report unrelated defects and wait for authorization before fixing them.
+  - id: tickets.type-prefix
+    level: mandatory
+    summary: Ticket titles must start with bugfix:, hotfix:, or feature: according to the work type.
   - id: quality.behavior-over-tests
     level: mandatory
     summary: Treat tests as evidence, not truth; propose fixes to incorrect behavior and incorrect tests together.
