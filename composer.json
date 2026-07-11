@@ -4,7 +4,7 @@
     "type": "project",
     "license": "proprietary",
     "require": {
-        "php": "^8.2",
+        "php": "^8.5",
         "symfony/console": "^7.2|^8.0",
         "symfony/filesystem": "^7.2|^8.0",
         "symfony/process": "^7.2|^8.0",

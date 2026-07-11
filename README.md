@@ -6,7 +6,7 @@ The name is intentionally literal: **Yaup** means "yet another unfinished projec
 
 ## Requirements
 
-PHP 8.2+, Composer, Node.js 22+, and Git 2.39+ on Linux or macOS.
+PHP 8.5+, Composer, Node.js 22+, and Git 2.39+ on Linux or macOS.
 
 ## Install
 
