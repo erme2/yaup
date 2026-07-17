@@ -30,6 +30,8 @@ Project work must happen in the registered checkout under `repos/`, for example 
 
 Ticket titles must start with `bugfix:`, `hotfix:`, or `feature:`. Use `hotfix:` only for urgent production-impacting corrections, `bugfix:` for normal defects, and `feature:` for new behavior, hardening, chores, and planned improvements.
 
+Ticket execution shorthand is documented in [Ticket work](playbooks/ticket-work.md). `jump on ISSUE_LINK` means move the ticket to in progress, branch from latest `main`, implement, and stop before commit. `R4R` means commit, push, and open pull requests for the current ticket across every involved project.
+
 ## Rule sources and precedence
 
 Canonical prose lives in `policies/core.md`; enforceable rules live in `policies/rules.yaml`. A project may use structured overrides in `.yaup.yaml`, but mandatory rules cannot be disabled. Recognized native instruction files are discovered read-only, including nested files. Unstructured contradictions require human resolution. `.yaup.local.yaml` provides ignored local preferences and cannot weaken shared rules.
