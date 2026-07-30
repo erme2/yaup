@@ -26,6 +26,8 @@ bin/yaup list
 
 The agent must stop on ambiguity, report nearby defects without fixing them, and distinguish correct behavior from tests that merely encode current behavior.
 
+Common conversational shortcuts such as `jump on <ticket>`, `r4r`, and `IR <pull-request>` are defined in `policies/core.md` so implementation, publish, and review handoffs stay consistent across repositories.
+
 ## Rule sources and precedence
 
 Canonical prose lives in `policies/core.md`; enforceable rules live in `policies/rules.yaml`. A project may use structured overrides in `.yaup.yaml`, but mandatory rules cannot be disabled. Recognized native instruction files are discovered read-only, including nested files. Unstructured contradictions require human resolution. `.yaup.local.yaml` provides ignored local preferences and cannot weaken shared rules.
