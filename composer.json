@@ -2,7 +2,7 @@
     "name": "erme2/yaup",
     "description": "Policy, planning, and execution controls for AI coding CLIs",
     "type": "project",
-    "license": "proprietary",
+    "license": "GPL-3.0-only",
     "require": {
         "php": "^8.5",
         "symfony/console": "^7.2|^8.0",
