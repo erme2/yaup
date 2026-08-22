@@ -55,3 +55,7 @@ composer audit
 ```
 
 Real agent adapters fail closed when their executable is unavailable. CI exercises adapter construction without live AI credentials; authenticated smoke tests remain an explicit release check.
+
+## License
+
+Yaup is licensed under GPL-3.0-only.
