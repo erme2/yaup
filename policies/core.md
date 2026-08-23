@@ -16,7 +16,7 @@ Only perform approved work. Report nearby defects and wait. Report every change,
 
 ## Conversational shortcuts
 
-When a human uses `jump on <ticket>`, take the ticket into active implementation in the repository's main checkout folder. Use a separate worktree only for review tasks or when the main checkout is unavailable or unsafe to use. Update assignment/project status when possible, implement locally, run appropriate validation, and stop before commit, push, or pull request creation so the human can review the code.
+When a human uses `jump on <ticket>`, take the ticket into active implementation in the repository's main checkout folder. Use a separate worktree only for review tasks or when the main checkout is unavailable or unsafe to use. Assign the ticket to the human who called the command when the hosting system supports assignment, move its project status to in progress when possible, implement locally, run appropriate validation, and stop before commit, push, or pull request creation so the human can review the code.
 
 Follow the shortcut rules as written. If a better option appears necessary, challenge the rule, explain the trade-off, and ask the human before deviating.
 

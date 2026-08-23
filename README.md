@@ -2,11 +2,13 @@
 
 Yaup applies one versioned policy and mechanically enforced planning gate to Codex, Claude Code, Cursor, GitHub Copilot, and Gemini CLI work across repositories.
 
-The name is intentionally literal: **Yaup** means "yet another unfinished project", because unfinished side projects have a way of multiplying unless something boring and strict keeps them moving toward done.
+The name is a joke at my own expense: **Yaup** means "yet another unfinished project", because pretty much all of my personal projects are unfinished. Yaup itself is no exception — it won't ever really be "done", both because how AI gets used in programming keeps changing out from under it, and because it exists to be a container for the rest of my projects, most of which are proofs of concept at best. The strictness is the point: something boring and rule-bound to keep those unfinished projects moving forward, run by a tool that's honest about being unfinished too.
 
 ## Requirements
 
-PHP 8.2+, Composer, Node.js 22+, and Git 2.39+ on Linux or macOS.
+Running yaup itself needs PHP 8.2+, Composer, and Git 2.39+, on Linux or macOS. CI exercises PHP 8.2 through 8.5 on Linux; macOS has only been verified locally so far.
+
+Node.js 22+ isn't required by yaup, but most supported agent CLIs (Codex, Claude Code, Cursor, Copilot, Gemini) are distributed via npm, so you'll need it to install and run whichever of those you use.
 
 ## Install
 
@@ -26,7 +28,11 @@ bin/yaup list
 
 The agent must stop on ambiguity, report nearby defects without fixing them, and distinguish correct behavior from tests that merely encode current behavior.
 
-Common conversational shortcuts such as `jump on <ticket>`, `r4r`, and `IR <pull-request>` are defined in `policies/core.md` so implementation, publish, and review handoffs stay consistent across repositories.
+Project work must happen in the registered checkout under `repos/`, for example `repos/burro` for Burro. Agents must not clone or edit project repositories in `/tmp`, `/private/tmp`, or another location where the human cannot see and review the working-tree changes. Git operations remain human-driven unless a specific branch, commit, push, or PR action is explicitly delegated.
+
+Ticket titles must start with `bugfix:`, `hotfix:`, or `feature:`. Use `hotfix:` only for urgent production-impacting corrections, `bugfix:` for normal defects, and `feature:` for new behavior, hardening, chores, and planned improvements.
+
+Ticket execution shorthand is documented in [Ticket work](playbooks/ticket-work.md). `jump on ISSUE_LINK` means move the ticket to in progress, branch from latest `main`, implement, and stop before commit. `R4R` means commit, push, and open pull requests for the current ticket across every involved project.
 
 ## Rule sources and precedence
 
@@ -49,5 +55,7 @@ composer format:check
 composer validate:composer
 composer audit
 ```
+
+`composer check` runs `validate:composer`, `test`, and `analyse`, and `format:check` together as one shortcut.
 
 Real agent adapters fail closed when their executable is unavailable. CI exercises adapter construction without live AI credentials; authenticated smoke tests remain an explicit release check.

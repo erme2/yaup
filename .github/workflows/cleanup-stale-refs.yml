@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       max-age:
-        description: Fallback age before stale PRs are closed and stale branches deleted. Examples: 14, 14d, 2w, "2 weeks".
+        description: 'Fallback age before stale PRs are closed and stale branches deleted. Examples: 14, 14d, 2w, "2 weeks".'
         required: false
         type: string
         default: 60d
@@ -25,12 +25,12 @@ on:
         default: keep,do-not-close
     secrets:
       STALE_REF_MAX_AGE:
-        description: Shared stale age for branches and PRs. Overrides max-age when set. Examples: 14, 14d, 2w, "2 weeks".
+        description: 'Shared stale age for branches and PRs. Overrides max-age when set. Examples: 14, 14d, 2w, "2 weeks".'
         required: false
   workflow_dispatch:
     inputs:
       max-age:
-        description: Fallback age before stale PRs are closed and stale branches deleted. Examples: 14, 14d, 2w, "2 weeks".
+        description: 'Fallback age before stale PRs are closed and stale branches deleted. Examples: 14, 14d, 2w, "2 weeks".'
         required: false
         type: string
         default: 60d
