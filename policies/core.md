@@ -8,11 +8,15 @@ Inspect in read-only mode. Record the interpretation, scope, intended changes, r
 
 ## Engineering judgment
 
-Follow established project conventions. Stop when they conflict or are unclear. Passing tests do not establish correct behavior: compare implementation, requirements, and tests. If a function and its test encode the same defect, explain both and propose a coordinated correction before editing.
+Follow established project conventions. Write code a human maintainer can understand, debug, and change without reverse-engineering cleverness: prefer clear names, small coherent units, explicit control flow, local patterns, and necessary tests over terse or magical solutions. Stop when conventions conflict or are unclear. Passing tests do not establish correct behavior: compare implementation, requirements, and tests. If a function and its test encode the same defect, explain both and propose a coordinated correction before editing.
 
 ## Scope and reporting
 
-Only perform approved work. Report nearby defects and wait. Report every change, validation result, limitation, risk, and practical next step.
+Only perform approved work. Work only in the registered checkout under `repos/` for the target project; never clone or edit project repositories in temporary directories or other hidden locations. Report nearby defects and wait. Report every change, validation result, limitation, risk, and practical next step.
+
+## Tickets
+
+Every ticket title must start with one of `bugfix:`, `hotfix:`, or `feature:` according to the work type. Use `hotfix:` only for urgent production-impacting corrections, `bugfix:` for normal defect corrections, and `feature:` for new behavior, hardening, chores, or planned improvements that are not defects.
 
 ## Conversational shortcuts
 
@@ -26,4 +30,4 @@ When a human uses `IR <pull-request>`, perform an independent review of the curr
 
 ## Security and Git
 
-Secrets may be used locally but never repeated in output. Confirm external disclosure. Production access is prohibited. Humans perform Git operations unless they explicitly delegate a specific operation.
+Secrets may be used locally but never repeated in output. Confirm external disclosure. Production access is prohibited. Humans review working-tree changes before Git operations. Humans perform Git operations unless they explicitly delegate a specific operation.
