@@ -1,0 +1,214 @@
+name: Cleanup stale branches and pull requests
+
+on:
+  workflow_call:
+    inputs:
+      max-age:
+        description: Fallback age before stale PRs are closed and stale branches deleted. Examples: 14, 14d, 2w, "2 weeks".
+        required: false
+        type: string
+        default: 60d
+      dry-run:
+        description: Report actions without closing PRs or deleting branches.
+        required: false
+        type: boolean
+        default: false
+      exclude-branches:
+        description: Comma-separated branch globs that must never be deleted.
+        required: false
+        type: string
+        default: main,master
+      exclude-pr-labels:
+        description: Comma-separated PR labels that prevent stale PR closure.
+        required: false
+        type: string
+        default: keep,do-not-close
+    secrets:
+      STALE_REF_MAX_AGE:
+        description: Shared stale age for branches and PRs. Overrides max-age when set. Examples: 14, 14d, 2w, "2 weeks".
+        required: false
+  workflow_dispatch:
+    inputs:
+      max-age:
+        description: Fallback age before stale PRs are closed and stale branches deleted. Examples: 14, 14d, 2w, "2 weeks".
+        required: false
+        type: string
+        default: 60d
+      dry-run:
+        description: Report actions without closing PRs or deleting branches.
+        required: false
+        type: boolean
+        default: true
+      exclude-branches:
+        description: Comma-separated branch globs that must never be deleted.
+        required: false
+        type: string
+        default: main,master
+      exclude-pr-labels:
+        description: Comma-separated PR labels that prevent stale PR closure.
+        required: false
+        type: string
+        default: keep,do-not-close
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close stale pull requests and delete stale branches
+        uses: actions/github-script@v7
+        env:
+          STALE_REF_MAX_AGE: ${{ secrets.STALE_REF_MAX_AGE }}
+          MAX_AGE: ${{ inputs.max-age }}
+          DRY_RUN: ${{ inputs.dry-run }}
+          EXCLUDE_BRANCHES: ${{ inputs.exclude-branches }}
+          EXCLUDE_PR_LABELS: ${{ inputs.exclude-pr-labels }}
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const dryRun = String(process.env.DRY_RUN).toLowerCase() === "true";
+            const maxAgeInput = process.env.STALE_REF_MAX_AGE || process.env.MAX_AGE || "60d";
+
+            const parseMaxAgeDays = (value) => {
+              const normalized = String(value || "").trim().toLowerCase();
+              const match = normalized.match(/^(\d+)\s*(d|day|days|w|week|weeks)?$/);
+
+              if (!match) {
+                throw new Error(`Invalid stale age [${value}]. Use values like 14, 14d, 2w, or "2 weeks".`);
+              }
+
+              const amount = Number(match[1]);
+              const unit = match[2] || "d";
+
+              if (amount <= 0) {
+                throw new Error("Stale age must be greater than zero.");
+              }
+
+              return unit.startsWith("w") ? amount * 7 : amount;
+            };
+
+            const maxAgeDays = parseMaxAgeDays(maxAgeInput);
+            const cutoff = new Date(Date.now() - maxAgeDays * 24 * 60 * 60 * 1000);
+
+            const splitList = (value) => String(value || "")
+              .split(",")
+              .map((item) => item.trim())
+              .filter(Boolean);
+
+            const excludedBranchGlobs = splitList(process.env.EXCLUDE_BRANCHES);
+            const excludedPrLabels = new Set(splitList(process.env.EXCLUDE_PR_LABELS));
+
+            const globToRegExp = (glob) => new RegExp(`^${glob
+              .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+              .replace(/\*/g, ".*")
+              .replace(/\?/g, ".")}$`);
+
+            const excludedBranchPatterns = excludedBranchGlobs.map(globToRegExp);
+            const branchExcluded = (name) => excludedBranchPatterns.some((pattern) => pattern.test(name));
+
+            const { data: repository } = await github.rest.repos.get({ owner, repo });
+            const defaultBranch = repository.default_branch;
+            const closedPrBranches = new Set();
+
+            core.info(`Repository: ${owner}/${repo}`);
+            core.info(`Dry run: ${dryRun}`);
+            core.info(`Stale age: ${maxAgeInput} (${maxAgeDays} days)`);
+            core.info(`Close PRs not updated since before ${cutoff.toISOString()}`);
+            core.info(`Delete branches last committed before ${cutoff.toISOString()}`);
+
+            const openPulls = await github.paginate(github.rest.pulls.list, {
+              owner,
+              repo,
+              state: "open",
+              per_page: 100,
+            });
+
+            for (const pull of openPulls) {
+              const updatedAt = new Date(pull.updated_at);
+              const labels = (pull.labels || []).map((label) => label.name);
+              const excludedByLabel = labels.some((label) => excludedPrLabels.has(label));
+
+              if (updatedAt >= cutoff || excludedByLabel) {
+                continue;
+              }
+
+              const message = `Closing stale pull request last updated ${pull.updated_at}; threshold is ${maxAgeDays} days.`;
+              core.info(`${dryRun ? "[dry-run] Would close" : "Closing"} PR #${pull.number}: ${pull.title}`);
+
+              if (!dryRun) {
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: pull.number,
+                  body: `${message}\n\nThis was handled by the shared stale-reference cleanup workflow.`,
+                });
+
+                await github.rest.pulls.update({
+                  owner,
+                  repo,
+                  pull_number: pull.number,
+                  state: "closed",
+                });
+              }
+
+              if (pull.head.repo?.full_name === `${owner}/${repo}`) {
+                closedPrBranches.add(pull.head.ref);
+              }
+            }
+
+            const remainingOpenPulls = dryRun ? openPulls : await github.paginate(github.rest.pulls.list, {
+              owner,
+              repo,
+              state: "open",
+              per_page: 100,
+            });
+
+            const openPrBranches = new Set(
+              remainingOpenPulls
+                .filter((pull) => pull.head.repo?.full_name === `${owner}/${repo}`)
+                .map((pull) => pull.head.ref)
+            );
+
+            const branches = await github.paginate(github.rest.repos.listBranches, {
+              owner,
+              repo,
+              per_page: 100,
+            });
+
+            for (const branch of branches) {
+              const name = branch.name;
+
+              if (
+                name === defaultBranch ||
+                branch.protected ||
+                branchExcluded(name) ||
+                openPrBranches.has(name)
+              ) {
+                continue;
+              }
+
+              const committedAt = new Date(branch.commit.commit.committer.date);
+              if (committedAt >= cutoff) {
+                continue;
+              }
+
+              const wasClosedByThisRun = closedPrBranches.has(name);
+              const detail = wasClosedByThisRun
+                ? "stale branch from a PR closed by this run"
+                : "stale branch with no open PR";
+
+              core.info(`${dryRun ? "[dry-run] Would delete" : "Deleting"} ${name}: ${detail}; last commit ${committedAt.toISOString()}`);
+
+              if (!dryRun) {
+                await github.rest.git.deleteRef({
+                  owner,
+                  repo,
+                  ref: `heads/${name}`,
+                });
+              }
+            }
