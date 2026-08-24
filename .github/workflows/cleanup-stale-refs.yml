@@ -180,6 +180,28 @@ jobs:
               per_page: 100,
             });
 
+            const getBranchCommittedAt = async (branch) => {
+              const sha = branch.commit?.sha;
+              if (!sha) {
+                core.warning(`Skipping ${branch.name}: branch commit SHA is missing.`);
+                return null;
+              }
+
+              const { data: commit } = await github.rest.repos.getCommit({
+                owner,
+                repo,
+                ref: sha,
+              });
+
+              const date = commit.commit?.committer?.date || commit.commit?.author?.date;
+              if (!date) {
+                core.warning(`Skipping ${branch.name}: commit date is missing for ${sha}.`);
+                return null;
+              }
+
+              return new Date(date);
+            };
+
             for (const branch of branches) {
               const name = branch.name;
 
@@ -192,7 +214,11 @@ jobs:
                 continue;
               }
 
-              const committedAt = new Date(branch.commit.commit.committer.date);
+              const committedAt = await getBranchCommittedAt(branch);
+              if (!committedAt) {
+                continue;
+              }
+
               if (committedAt >= cutoff) {
                 continue;
               }
