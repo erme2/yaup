@@ -1,0 +1,3 @@
+interface:
+  display_name: "Jump On"
+  short_description: "Start Yaup ticket work without publishing"

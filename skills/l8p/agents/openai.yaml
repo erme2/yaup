@@ -1,0 +1,3 @@
+interface:
+  display_name: "L8P"
+  short_description: "Loop review fixes until a PR is clean"

@@ -1,0 +1,3 @@
+interface:
+  display_name: "IR"
+  short_description: "Review a Yaup pull request independently"
