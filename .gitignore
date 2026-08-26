@@ -1,5 +1,5 @@
 .idea/
-repos/
+/repos/
 .DS_Store
 /vendor/
 /.phpunit.cache/

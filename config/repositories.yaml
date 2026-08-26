@@ -1,8 +1,5 @@
 schema_version: 1
 repositories:
-  - name: burro
-    path: /Volumes/code/yaup/repos/burro
-    remote: 'git@github.com:erme2/Burro.git'
   - name: coffee-brews
     path: /Volumes/code/yaup/repos/coffee-brews
     remote: 'git@github.com:erme2/coffee-brews.git'
@@ -12,3 +9,9 @@ repositories:
   - name: pane
     path: /Volumes/code/yaup/repos/pane
     remote: 'git@github.com:erme2/pane.git'
+  - name: latte
+    path: /Volumes/code/yaup/repos/Latte
+    remote: 'git@github.com:erme2/Latte.git'
+  - name: erme2.com
+    path: /Volumes/code/yaup/repos/erme2.com
+    remote: 'git@github.com:erme2/erme2.com.git'
