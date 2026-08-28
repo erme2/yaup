@@ -33,7 +33,7 @@ Project implementation work must happen in the registered checkout under `repos/
 
 Ticket titles must start with `bugfix:`, `hotfix:`, or `feature:`. Use `hotfix:` only for urgent production-impacting corrections, `bugfix:` for normal defects, and `feature:` for new behavior, hardening, chores, and planned improvements.
 
-Ticket execution shorthand is documented in [Ticket work](playbooks/ticket-work.md). `jump on ISSUE_LINK` means move the ticket to in progress, branch from latest `main`, implement, and stop before commit. `R4R` means commit, push, and open pull requests for the current ticket across every involved project.
+Ticket execution shorthand is documented in [Ticket work](playbooks/ticket-work.md), with delegation boundaries in [Agent workflow autonomy](docs/agent-workflow-autonomy.md). `jump on ISSUE_LINK` means move the ticket to in progress, branch from latest `main`, implement, and stop before commit. `R4R` means commit, push, and open pull requests for the current ticket across every involved project.
 
 ## Rule sources and precedence
 

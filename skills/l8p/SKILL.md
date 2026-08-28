@@ -7,6 +7,8 @@ description: Use after R4R on a pull request to loop independent review, fix fin
 
 L8P means "loop to pass": after an R4R-created pull request exists, repeatedly run an IR-style review, fix actionable findings, validate, commit, and push updates until the review is clean or a stopping condition is reached.
 
+Follow `docs/agent-workflow-autonomy.md` for the allowed autonomous actions and ask-first boundaries.
+
 ## When To Use
 
 Use this skill only when the user explicitly invokes `L8P` or asks for this loop-review workflow on an existing pull request.
@@ -50,7 +52,9 @@ Stop and report instead of continuing when:
 `L8P` authorizes normal fixup commits and pushes to the existing PR branch. It does not authorize:
 
 - Merging the PR.
+- Approving the PR.
 - Force-pushing or rebasing published history unless the user explicitly asks.
+- Deleting branches.
 - Closing issues or marking project items done.
 - Accessing production systems.
 - Printing or copying secrets.

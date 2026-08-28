@@ -9,6 +9,8 @@ Use this skill when the user says `R4R`, `r4r`, or an equivalent ready-for-revie
 
 `R4R` means the human has reviewed the local working tree and explicitly delegates the GitHub publishing steps for the current ticket only.
 
+Follow `docs/agent-workflow-autonomy.md` for the allowed autonomous actions and ask-first boundaries. `R4R` authorizes staging intended files, committing, pushing, opening or updating pull requests, linking issues, creating missing labels/project entries/milestones when needed, moving the project item to `In review`, and checking CI.
+
 ## Workflow
 
 1. Identify the current ticket and every involved project.
@@ -31,4 +33,4 @@ Do not include unrelated local changes. Report any involved project that has no 
 
 Scratch files in `/private/tmp` are not durable project records and must not be committed unless the user explicitly asks to promote one into the repository.
 
-`R4R` does not authorize force pushes, destructive Git commands, publishing changes outside the ticket scope, merging PRs, or closing tickets.
+`R4R` does not authorize PR approvals, force pushes, branch deletion, destructive Git commands, publishing changes outside the ticket scope, merging PRs, or closing tickets outside normal linked-PR merge closure.
