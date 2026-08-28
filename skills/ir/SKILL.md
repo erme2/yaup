@@ -7,7 +7,7 @@ description: Perform an independent review of a Yaup pull request when the user 
 
 Use this skill when the user says `IR <pull-request>`, `IR <ticket>`, or asks for the Yaup independent-review flow.
 
-`IR` is a direct command. The user has authorized normal GitHub PR inspection commands such as `gh pr view`, `gh pr diff`, `gh pr checks`, and posting the review result as a PR comment.
+`IR` is a direct command. The user has authorized normal GitHub PR inspection, diff, checks, workflow, issue, project, and comment operations, plus posting the review result to the pull request. Follow `docs/agent-workflow-autonomy.md` for the allowed autonomous actions and ask-first boundaries.
 
 ## Workflow
 
@@ -26,7 +26,7 @@ Use this skill when the user says `IR <pull-request>`, `IR <ticket>`, or asks fo
 
 ## Boundaries
 
-Do not implement fixes during an `IR` pass. Do not merge, close issues, force-push, or mark project items done.
+Do not implement fixes during an `IR` pass. Do not approve pull requests, merge, close issues, force-push, delete branches, or mark project items done.
 
 Use `/private/tmp` for review worktrees, review-body drafts, patches, logs, and other temporary inspection artifacts. These scratch files are not durable project records and do not authorize implementation work outside the registered checkout.
 

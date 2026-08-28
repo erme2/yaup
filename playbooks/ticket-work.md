@@ -3,6 +3,10 @@
 Use this playbook when a human delegates work by GitHub issue link or uses a
 shared shorthand for ticket execution.
 
+Shortcut autonomy is defined in
+[Agent workflow autonomy](../docs/agent-workflow-autonomy.md). Actions not
+explicitly allowed there require confirmation before proceeding.
+
 ## Scratch workspace
 
 Agents may use `/private/tmp` as a scratch workspace for temporary workflow

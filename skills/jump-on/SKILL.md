@@ -7,6 +7,8 @@ description: Start implementation for a Yaup-tracked issue when the user says "j
 
 Use this skill when the user says `jump on <ticket>`, `jump on ISSUE_LINK`, or gives an equivalent Yaup ticket-start command.
 
+Follow `docs/agent-workflow-autonomy.md` for the allowed autonomous actions and ask-first boundaries.
+
 ## Workflow
 
 1. Inspect the ticket, linked PRs, comments, labels, project status, and relevant repository context.
