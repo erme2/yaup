@@ -23,7 +23,7 @@ If no PR can be identified, ask for the PR URL. If the local checkout is not on 
 1. Confirm the PR, repository, head branch, base branch, and current project/issue status.
 2. Ensure the issue or PR is assigned to the human owner when possible, and keep the project item in an active review/fix status when available.
 3. Start each review cycle with an IR-style independent review:
-   - Prefer an isolated worktree for review so implementation state does not bias or disturb the review.
+   - Prefer an isolated worktree under `/private/tmp` for review so implementation state does not bias or disturb the review.
    - Inspect the PR diff, surrounding code, tests, CI/check status, and prior review comments.
    - Do not approve the PR or merge it.
 4. If the review finds no actionable issues, stop the loop and report the clean result.
@@ -54,6 +54,8 @@ Stop and report instead of continuing when:
 - Closing issues or marking project items done.
 - Accessing production systems.
 - Printing or copying secrets.
+
+Use `/private/tmp` for review worktrees, review notes, patch files, logs, and other scratch artifacts. Scratch files are temporary aids, not durable project records, and they do not expand the PR's approved implementation scope.
 
 At completion, report:
 

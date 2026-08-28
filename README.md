@@ -28,7 +28,7 @@ bin/yaup list
 
 The agent must stop on ambiguity, report nearby defects without fixing them, and distinguish correct behavior from tests that merely encode current behavior.
 
-Project work must happen in the registered checkout under `repos/`, for example `repos/burro` for Burro. Agents must not clone or edit project repositories in `/tmp`, `/private/tmp`, or another location where the human cannot see and review the working-tree changes. Git operations remain human-driven unless a specific branch, commit, push, or PR action is explicitly delegated.
+Project implementation work must happen in the registered checkout under `repos/`, for example `repos/burro` for Burro. Agents must not implement from clones, temporary worktrees, or hidden checkouts in `/tmp`, `/private/tmp`, or another location where the human cannot see and review the working-tree changes. Agents may use `/private/tmp` for scratch files, command bodies, patches, logs, rendered artifacts, and isolated review worktrees; these are temporary aids, not durable project records. Git operations remain human-driven unless a specific branch, commit, push, or PR action is explicitly delegated.
 
 Ticket titles must start with `bugfix:`, `hotfix:`, or `feature:`. Use `hotfix:` only for urgent production-impacting corrections, `bugfix:` for normal defects, and `feature:` for new behavior, hardening, chores, and planned improvements.
 

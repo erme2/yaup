@@ -12,7 +12,8 @@ Do not store:
 
 - Secrets, tokens, credentials, or private keys.
 - Dependency folders or generated build output.
-- Throwaway drafts that belong in `/private/tmp`.
+- Throwaway drafts, PR or review bodies, patches, logs, rendered artifacts, or
+  other scratch files that belong in `/private/tmp`.
 
 Structure:
 
