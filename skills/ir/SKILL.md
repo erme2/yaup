@@ -12,7 +12,7 @@ Use this skill when the user says `IR <pull-request>`, `IR <ticket>`, or asks fo
 ## Workflow
 
 1. Identify the PR or, when given a ticket, find related open PRs across Yaup repos.
-2. Prefer an isolated review worktree so local implementation work is not disturbed.
+2. Prefer an isolated review worktree under `/private/tmp` so local implementation work is not disturbed.
 3. Inspect:
    - PR title, body, linked issue, branch, and base,
    - diff and relevant surrounding code,
@@ -27,5 +27,7 @@ Use this skill when the user says `IR <pull-request>`, `IR <ticket>`, or asks fo
 ## Boundaries
 
 Do not implement fixes during an `IR` pass. Do not merge, close issues, force-push, or mark project items done.
+
+Use `/private/tmp` for review worktrees, review-body drafts, patches, logs, and other temporary inspection artifacts. These scratch files are not durable project records and do not authorize implementation work outside the registered checkout.
 
 If GitHub does not allow a formal review action, post the same result as a PR comment and report that limitation.

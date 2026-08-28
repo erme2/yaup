@@ -16,13 +16,16 @@ Use this skill when the user says `jump on <ticket>`, `jump on ISSUE_LINK`, or g
 5. Update the local checkout to the latest `main` before starting, unless doing so would overwrite unrelated local work.
 6. Create a ticket branch from `main`.
 7. Name the branch from the ticket number and a short description, without an `issue-` segment, for example `feature/37-secure-session-cookie-defaults`.
-8. Ask architecture or product questions only when the answer materially affects the solution.
-9. Implement the scoped change with appropriate tests and documentation.
-10. Run validation proportional to the change.
-11. Stop when the work is ready for human review.
+8. Use `/private/tmp` for temporary notes, issue-body drafts, patches, logs, and other scratch artifacts that should not become project records.
+9. Ask architecture or product questions only when the answer materially affects the solution.
+10. Implement the scoped change with appropriate tests and documentation.
+11. Run validation proportional to the change.
+12. Stop when the work is ready for human review.
 
 ## Boundaries
 
 `jump on` does not authorize committing, pushing, opening pull requests, merging, closing issues, force-pushing, or destructive Git operations. Those require an explicit later command such as `R4R`.
+
+Scratch files in `/private/tmp` are temporary aids. They do not authorize doing implementation work in hidden clones or bypassing the registered checkout.
 
 If the ticket spans multiple repos, handle each involved repo explicitly and report the status of each worktree at the end.
