@@ -38,6 +38,8 @@ Ticket execution shorthand is documented in [Ticket work](playbooks/ticket-work.
 
 Canonical prose lives in `policies/core.md`; enforceable rules live in `policies/rules.yaml`. A project may use structured overrides in `.yaup.yaml`, but mandatory rules cannot be disabled. Recognized native instruction files are discovered read-only, including nested files. Unstructured contradictions require human resolution. `.yaup.local.yaml` provides ignored local preferences and cannot weaken shared rules.
 
+Architecture Decision Records under [docs/adr/](docs/adr/) explain the rationale and tradeoffs behind core policy decisions. They do not replace `policies/rules.yaml`; the rules file remains the enforceable policy source.
+
 ## Plans
 
 Plans are committed project records. Approval requires `status: approved`, populated approver and ISO 8601 timestamp fields, and an unchanged committed version. Material scope changes require a new approval commit. Completed plans retain changes, validation results, deviations, risks, and next steps; transcripts are not retained by default.
