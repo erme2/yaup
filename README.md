@@ -20,11 +20,12 @@ bin/yaup list
 ## Workflow
 
 1. `bin/yaup discover` discovers direct children of `repos/` and registers projects with an origin remote.
-2. `bin/yaup rules:resolve repos/example` shows the effective structured rules and protected native instruction files.
-3. `bin/yaup agent codex repos/example "task"` launches mechanically read-only planning.
-4. A human reviews, approves, and commits the saved plan.
-5. `bin/yaup agent codex repos/example "execute approved plan" --execute --plan repos/example/plans/task.yaml` verifies Git-backed approval before enabling writes.
-6. `bin/yaup validate repos/example` runs every explicitly configured validation category.
+2. `bin/yaup instructions:sync` creates or refreshes Yaup-managed `AGENTS.md` bridge files in registered projects.
+3. `bin/yaup rules:resolve repos/example` shows the effective structured rules and protected native instruction files.
+4. `bin/yaup agent codex repos/example "task"` launches mechanically read-only planning.
+5. A human reviews, approves, and commits the saved plan.
+6. `bin/yaup agent codex repos/example "execute approved plan" --execute --plan repos/example/plans/task.yaml` verifies Git-backed approval before enabling writes.
+7. `bin/yaup validate repos/example` runs every explicitly configured validation category.
 
 The agent must stop on ambiguity, report nearby defects without fixing them, and distinguish correct behavior from tests that merely encode current behavior.
 
@@ -37,6 +38,8 @@ Ticket execution shorthand is documented in [Ticket work](playbooks/ticket-work.
 ## Rule sources and precedence
 
 Canonical prose lives in `policies/core.md`; enforceable rules live in `policies/rules.yaml`. A project may use structured overrides in `.yaup.yaml`, but mandatory rules cannot be disabled. Recognized native instruction files are discovered read-only, including nested files. Unstructured contradictions require human resolution. `.yaup.local.yaml` provides ignored local preferences and cannot weaken shared rules.
+
+Yaup can create managed `AGENTS.md` bridge files in registered project checkouts with `bin/yaup instructions:sync`. The command refreshes files carrying the Yaup bridge marker and preserves project-owned `AGENTS.md` files without that marker.
 
 Architecture Decision Records under [docs/adr/](docs/adr/) explain the rationale and tradeoffs behind core policy decisions. They do not replace `policies/rules.yaml`; the rules file remains the enforceable policy source.
 
