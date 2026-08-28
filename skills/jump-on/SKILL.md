@@ -28,4 +28,6 @@ Use this skill when the user says `jump on <ticket>`, `jump on ISSUE_LINK`, or g
 
 Scratch files in `/private/tmp` are temporary aids. They do not authorize doing implementation work in hidden clones or bypassing the registered checkout.
 
+Do not create, switch to, or implement from a worktree during `jump on` unless the human explicitly approves that specific deviation first. If the main registered checkout is unavailable or unsafe because of unrelated local work, stop and ask how to proceed.
+
 If the ticket spans multiple repos, handle each involved repo explicitly and report the status of each worktree at the end.
