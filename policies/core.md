@@ -12,7 +12,7 @@ Follow established project conventions. Write code a human maintainer can unders
 
 ## Scope and reporting
 
-Only perform approved work. Work only in the registered checkout under `repos/` for the target project; never clone or edit project repositories in temporary directories or other hidden locations. Report nearby defects and wait. Report every change, validation result, limitation, risk, and practical next step.
+Only perform approved work. Project implementation work must happen in the registered checkout under `repos/` for the target project unless the human explicitly approves a specific visible worktree deviation first; never implement from temporary clones, hidden worktrees, or other hidden locations. Agents may use `/private/tmp` for scratch artifacts and isolated review worktrees, but scratch files are not durable project records and do not authorize repository writes, Git metadata/index writes, or implementation outside the registered checkout. Report nearby defects and wait. Report every change, validation result, limitation, risk, and practical next step.
 
 ## Tickets
 

@@ -8,7 +8,7 @@ rules:
     summary: Stop and ask when requirements or project conventions are ambiguous.
   - id: workspace.registered-repos-only
     level: mandatory
-    summary: Perform project work only in the registered checkout under repos/; do not clone or edit project repositories in temporary directories.
+    summary: Perform implementation work in the registered checkout under repos/ unless a human approves a specific visible worktree deviation; temporary scratch artifacts and review worktrees do not authorize repository writes or hidden implementation.
   - id: scope.report-nearby-defects
     level: mandatory
     summary: Report unrelated defects and wait for authorization before fixing them.
