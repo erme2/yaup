@@ -59,27 +59,43 @@ final class InstructionsSyncCommand extends Command
             $selectedProjects[] = $project;
         }
 
-        $rows = [];
+        $registered = [];
         foreach ($repositories as $repository) {
             if (!is_array($repository) || !isset($repository['name'], $repository['path']) || !is_string($repository['name']) || !is_string($repository['path'])) {
                 continue;
             }
-            if ([] !== $selectedProjects && !in_array($repository['name'], $selectedProjects, true)) {
-                continue;
-            }
 
-            $status = $this->syncRepository($repository['name'], $repository['path']);
-            $rows[] = [$repository['name'], $repository['path'], $status];
+            $registered[$repository['name']] = $repository['path'];
         }
 
-        $syncedNames = array_map(static fn(array $row): string => $row[0], $rows);
-        $unknownProjects = array_values(array_diff($selectedProjects, $syncedNames));
+        $unknownProjects = array_values(array_diff($selectedProjects, array_keys($registered)));
         if ([] !== $unknownProjects) {
             $io->error('Unknown registered project: ' . implode(', ', $unknownProjects));
             return Command::FAILURE;
         }
 
+        $rows = [];
+        $failed = false;
+        foreach ($registered as $name => $path) {
+            if ([] !== $selectedProjects && !in_array($name, $selectedProjects, true)) {
+                continue;
+            }
+
+            $status = $this->syncRepository($name, $path);
+            if ('write failed' === $status) {
+                $failed = true;
+            }
+
+            $rows[] = [$name, $path, $status];
+        }
+
         $io->table(['Project', 'Path', 'AGENTS.md'], $rows);
+        if ($failed) {
+            $io->error('Failed to write one or more Yaup agent bridge files.');
+
+            return Command::FAILURE;
+        }
+
         $io->success('Synchronized Yaup agent bridge files.');
 
         return Command::SUCCESS;
@@ -94,7 +110,9 @@ final class InstructionsSyncCommand extends Command
         $file = rtrim($path, '/') . '/AGENTS.md';
         $content = $this->bridgeContent($name);
         if (!is_file($file)) {
-            file_put_contents($file, $content);
+            if (!$this->writeFile($file, $content)) {
+                return 'write failed';
+            }
 
             return 'created';
         }
@@ -108,9 +126,16 @@ final class InstructionsSyncCommand extends Command
             return 'current';
         }
 
-        file_put_contents($file, $content);
+        if (!$this->writeFile($file, $content)) {
+            return 'write failed';
+        }
 
         return 'updated';
+    }
+
+    private function writeFile(string $file, string $content): bool
+    {
+        return false !== @file_put_contents($file, $content);
     }
 
     private function bridgeContent(string $name): string

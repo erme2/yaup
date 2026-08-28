@@ -68,6 +68,16 @@ final class InstructionsSyncCommandTest extends TestCase
         self::assertStringContainsString('Unknown registered project: missing', $tester->getDisplay());
     }
 
+    public function testMixedKnownAndUnknownSelectedProjectsFailBeforeWriting(): void
+    {
+        $tester = new CommandTester(new InstructionsSyncCommand($this->temporaryDirectory));
+        $status = $tester->execute(['project' => ['example', 'missing']]);
+
+        self::assertSame(Command::FAILURE, $status);
+        self::assertFileDoesNotExist($this->temporaryDirectory . '/repos/example/AGENTS.md');
+        self::assertStringContainsString('Unknown registered project: missing', $tester->getDisplay());
+    }
+
     public function testUpdatesManagedBridgeFile(): void
     {
         file_put_contents($this->temporaryDirectory . '/repos/example/AGENTS.md', "<!-- yaup-managed-agent-bridge -->\nold\n");
@@ -109,5 +119,17 @@ final class InstructionsSyncCommandTest extends TestCase
         self::assertSame(Command::SUCCESS, $status);
         self::assertSame("# Project Instructions\n\nKeep me.\n", file_get_contents($this->temporaryDirectory . '/repos/example/AGENTS.md'));
         self::assertStringContainsString('preserved', $tester->getDisplay());
+    }
+
+    public function testWriteFailureFailsCommand(): void
+    {
+        mkdir($this->temporaryDirectory . '/repos/example/AGENTS.md');
+
+        $tester = new CommandTester(new InstructionsSyncCommand($this->temporaryDirectory));
+        $status = $tester->execute(['project' => ['example']]);
+
+        self::assertSame(Command::FAILURE, $status);
+        self::assertStringContainsString('write failed', $tester->getDisplay());
+        self::assertStringContainsString('Failed to write one or more Yaup agent bridge files.', $tester->getDisplay());
     }
 }
