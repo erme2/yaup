@@ -21,6 +21,7 @@ Adapters keep vendor-specific flags isolated and make unsupported or missing exe
 ## Related files or rules
 
 - `docs/architecture.md`
+- `docs/adapters.md`
 - `src/Agent/AgentAdapter.php`
 - `src/Agent/AdapterRegistry.php`
 - `src/Agent/CodexAdapter.php`
