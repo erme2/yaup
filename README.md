@@ -27,6 +27,83 @@ bin/yaup list
 6. `bin/yaup agent codex repos/example "execute approved plan" --execute --plan repos/example/plans/task.yaml` verifies Git-backed approval before enabling writes.
 7. `bin/yaup validate repos/example` runs every explicitly configured validation category.
 
+### Worked example
+
+The exact transcript depends on the selected agent CLI and the target project, but a complete Yaup pass should look like this:
+
+```sh
+$ bin/yaup discover
++---------+---------------------------------+---------------------+
+| Project | Remote                          | Cross-repository CI |
++---------+---------------------------------+---------------------+
+| example | git@github.com:erme2/example.git | registered          |
++---------+---------------------------------+---------------------+
+
+ [OK] Discovered 1 projects; added 1 registry entries.
+```
+
+Planning mode launches the adapter with Yaup's resolved rules and native instruction file list, then requires the agent to leave the checkout unchanged:
+
+```sh
+$ bin/yaup agent codex repos/example "Add a health-check endpoint"
+[codex output, truncated]
+Read Yaup rules and native instructions.
+Proposed plan: add GET /health plus feature coverage.
+Saved plan to plans/health-check-endpoint.yaml.
+```
+
+A saved plan is a normal project file. The human reviews it, changes `status` and `approval`, then commits the approved version:
+
+```yaml
+status: approved
+summary: Add a GET /health endpoint that returns service status.
+changes:
+  - path: routes/web.php
+    action: add GET /health route
+  - path: tests/Feature/HealthCheckTest.php
+    action: cover the JSON response and status code
+validation:
+  - composer test
+approval:
+  approved: true
+  approver: erme2
+  approved_at: '2026-08-29T10:30:00+01:00'
+```
+
+```sh
+$ git add plans/health-check-endpoint.yaml
+$ git commit -m "Approve health-check endpoint plan"
+```
+
+Execution mode verifies that the approved plan is committed and unchanged before enabling writes:
+
+```sh
+$ bin/yaup agent codex repos/example "Execute the approved health-check plan" \
+    --execute --plan repos/example/plans/health-check-endpoint.yaml
+[codex output, truncated]
+Implemented GET /health and feature coverage.
+```
+
+Validation runs every mandatory category configured by the project. Missing commands or expired exemptions fail closed:
+
+```sh
+$ bin/yaup validate repos/example
++-------------------------+--------+-----------------------------+
+| Category                | Status | Detail                      |
++-------------------------+--------+-----------------------------+
+| focused-tests           | passed | PHPUnit 1 test passed       |
+| full-tests              | passed | PHPUnit 42 tests passed     |
+| lint                    | passed | no syntax errors detected   |
+| format                  | passed | style check clean           |
+| static-analysis         | passed | no errors                   |
+| production-build        | exempt | backend-only package        |
+| browser-ui-verification | exempt | no browser UI               |
+| bug-regression-test     | exempt | feature-only change         |
+| feature-tests           | passed | health-check coverage added |
+| security-audit          | passed | no advisories found         |
++-------------------------+--------+-----------------------------+
+```
+
 The agent must stop on ambiguity, report nearby defects without fixing them, and distinguish correct behavior from tests that merely encode current behavior.
 
 Project implementation work must happen in the registered checkout under `repos/`, for example `repos/burro` for Burro. Agents must not implement from clones, temporary worktrees, or hidden checkouts in `/tmp`, `/private/tmp`, or another location where the human cannot see and review the working-tree changes. Agents may use `/private/tmp` for scratch files, command bodies, patches, logs, rendered artifacts, and isolated review worktrees; these are temporary aids, not durable project records. Git operations remain human-driven unless a specific branch, commit, push, or PR action is explicitly delegated.
