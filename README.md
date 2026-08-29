@@ -71,8 +71,8 @@ approval:
 ```
 
 ```sh
-$ git add plans/health-check-endpoint.yaml
-$ git commit -m "Approve health-check endpoint plan"
+$ git -C repos/example add plans/health-check-endpoint.yaml
+$ git -C repos/example commit -m "Approve health-check endpoint plan"
 ```
 
 Execution mode verifies that the approved plan is committed and unchanged before enabling writes:
