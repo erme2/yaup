@@ -118,7 +118,7 @@ Canonical prose lives in `policies/core.md`; enforceable rules live in `policies
 
 Yaup can create managed `AGENTS.md` bridge files in registered project checkouts with `bin/yaup instructions:sync`. The command refreshes files carrying the Yaup bridge marker and preserves project-owned `AGENTS.md` files without that marker.
 
-Architecture Decision Records under [docs/adr/](docs/adr/) explain the rationale and tradeoffs behind core policy decisions. They do not replace `policies/rules.yaml`; the rules file remains the enforceable policy source.
+Architecture Decision Records under [docs/adr/](docs/adr/) explain the rationale and tradeoffs behind core policy decisions. [Agent adapters](docs/adapters.md) documents the supported CLI adapter contract and permission-mode mapping. ADRs do not replace `policies/rules.yaml`; the rules file remains the enforceable policy source.
 
 ## Plans
 
