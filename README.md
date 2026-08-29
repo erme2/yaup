@@ -124,6 +124,12 @@ Architecture Decision Records under [docs/adr/](docs/adr/) explain the rationale
 
 Plans are committed project records. Approval requires `status: approved`, populated approver and ISO 8601 timestamp fields, and an unchanged committed version. Material scope changes require a new approval commit. Completed plans retain changes, validation results, deviations, risks, and next steps; transcripts are not retained by default.
 
+Yaup mechanically verifies that the approved plan file is committed and unchanged before execution. It does not currently diff implementation scope against the approved plan or decide materiality on its own. The human reviewer is responsible for deciding whether a plan change is material before approving and committing it.
+
+A material scope change is a change that would reasonably alter what the approver thought they were authorizing: adding or removing affected features, files, repositories, data migrations, external services, permissions, security behavior, production behavior, or validation obligations. Rewording a description, fixing spelling, clarifying an already-approved step, or adding non-normative detail is not material when it does not alter intended work, risk, or validation.
+
+When in doubt, treat the change as material, return to planning, and require a fresh approval commit.
+
 ## Private repositories
 
 Project workflows pin an exact Yaup release and use a read-only GitHub App token to download private artifacts. Configure `YAUP_APP_ID` and `YAUP_APP_PRIVATE_KEY` as repository or organization secrets. Repository identity is configured once in `config/yaup.yaml` so a rename does not require source changes.
