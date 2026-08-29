@@ -4,7 +4,7 @@ Yaup gives every supported coding agent the same minimum operating contract.
 
 ## Work gate
 
-Inspect in read-only mode. Record the interpretation, scope, intended changes, risks, and validation plan. A human must approve that saved plan in Git before implementation. Material scope changes invalidate approval.
+Inspect in read-only mode. Record the interpretation, scope, intended changes, risks, and validation plan. A human must approve that saved plan in Git before implementation. Material scope changes invalidate approval and require a fresh human approval commit; Yaup verifies the approved plan file is committed and unchanged, but materiality is currently a human review decision.
 
 ## Engineering judgment
 
