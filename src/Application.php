@@ -8,6 +8,7 @@ use Symfony\Component\Console\Application as SymfonyApplication;
 use Yaup\Command\AgentCommand;
 use Yaup\Command\DiscoverCommand;
 use Yaup\Command\InstructionsSyncCommand;
+use Yaup\Command\PlanDiffCommand;
 use Yaup\Command\PlanVerifyCommand;
 use Yaup\Command\RulesResolveCommand;
 use Yaup\Command\ValidateCommand;
@@ -20,6 +21,7 @@ final class Application extends SymfonyApplication
         $this->addCommands([
             new DiscoverCommand($root),
             new RulesResolveCommand($root),
+            new PlanDiffCommand(),
             new PlanVerifyCommand($root),
             new AgentCommand($root),
             new ValidateCommand(),
