@@ -27,6 +27,8 @@ bin/yaup list
 6. `bin/yaup agent codex repos/example "execute approved plan" --execute --plan repos/example/plans/task.yaml` verifies Git-backed approval before enabling writes.
 7. `bin/yaup validate repos/example` runs every explicitly configured validation category.
 
+For ticket work that spans more than one checkout, `bin/yaup ticket:status <ticket>` shows matching branches, matching plan approval state, and dirty/clean worktree status across Yaup and registered repositories. Pass project names after the ticket to limit the table, for example `bin/yaup ticket:status 20 pane latte`.
+
 ### Worked example
 
 The exact transcript depends on the selected agent CLI and the target project, but a complete Yaup pass should look like this:
