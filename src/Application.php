@@ -11,6 +11,7 @@ use Yaup\Command\InstructionsSyncCommand;
 use Yaup\Command\PlanDiffCommand;
 use Yaup\Command\PlanVerifyCommand;
 use Yaup\Command\RulesResolveCommand;
+use Yaup\Command\TicketStatusCommand;
 use Yaup\Command\ValidateCommand;
 
 final class Application extends SymfonyApplication
@@ -23,6 +24,7 @@ final class Application extends SymfonyApplication
             new RulesResolveCommand($root),
             new PlanDiffCommand(),
             new PlanVerifyCommand($root),
+            new TicketStatusCommand($root),
             new AgentCommand($root),
             new ValidateCommand(),
             new InstructionsSyncCommand($root),
