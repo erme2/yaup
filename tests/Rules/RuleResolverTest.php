@@ -67,4 +67,15 @@ final class RuleResolverTest extends TestCase
         $this->expectExceptionMessage('Mandatory rule field cannot be added: safe.instruction');
         (new RuleResolver(new ConfigLoader()))->resolve($this->temporaryDirectory, $this->temporaryDirectory . '/project');
     }
+
+    public function testOverrideIdCannotAliasMandatoryRule(): void
+    {
+        file_put_contents(
+            $this->temporaryDirectory . '/project/.yaup.yaml',
+            "rule_overrides:\n  weak-copy:\n    id: safe\n    level: default\n    summary: optional\n"
+        );
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Rule override id must match its key: weak-copy');
+        (new RuleResolver(new ConfigLoader()))->resolve($this->temporaryDirectory, $this->temporaryDirectory . '/project');
+    }
 }

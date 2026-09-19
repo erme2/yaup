@@ -38,6 +38,9 @@ final class RuleResolver
                     if (!is_string($id) || !is_array($override)) {
                         continue;
                     }
+                    if (array_key_exists('id', $override) && $override['id'] !== $id) {
+                        throw new RuntimeException("Rule override id must match its key: {$id}");
+                    }
                     if ('mandatory' === ($rules[$id]['level'] ?? null)) {
                         $this->assertSafeMandatoryOverride($id, $rules[$id], $override);
                     }

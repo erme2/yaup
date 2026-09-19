@@ -48,10 +48,15 @@ final class AgentPolicyDistributionTest extends TestCase
 
         self::assertCount(1, $policy);
         self::assertSame('mandatory', $policy[0]['level']);
+        self::assertIsString($policy[0]['summary']);
 
         $promptBuilder = new AgentPromptBuilder();
         $planningPrompt = $promptBuilder->build('Plan the task.', $resolved, true);
         $executionPrompt = $promptBuilder->build('Implement the approved task.', $resolved);
+        foreach ([$planningPrompt, $executionPrompt] as $prompt) {
+            self::assertStringContainsString('quality.human-maintainable-code', $prompt);
+            self::assertStringContainsString($policy[0]['summary'], $prompt);
+        }
         $registry = new AdapterRegistry();
 
         foreach ($registry->names() as $name) {
