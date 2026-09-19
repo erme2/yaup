@@ -12,6 +12,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Process\Process;
 use Yaup\Agent\AdapterRegistry;
+use Yaup\Agent\AgentPromptBuilder;
 use Yaup\Config\ConfigLoader;
 use Yaup\Plan\PlanVerifier;
 use Yaup\Rules\RuleResolver;
@@ -57,10 +58,8 @@ final class AgentCommand extends Command
             return Command::FAILURE;
         }
         $agent = (new AdapterRegistry())->get($agentName);
-        $prompt = $promptArgument;
         $resolved = (new RuleResolver($loader))->resolve($this->root, $project);
-        $context = "\n\nEffective yaup rules:\n" . json_encode($resolved->rules, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR)
-            . "\nNative instruction files (read and obey):\n" . implode("\n", $resolved->nativeFiles);
+        $promptBuilder = new AgentPromptBuilder();
         if ($input->getOption('execute')) {
             $plan = $input->getOption('plan');
             if (!is_string($plan) || '' === $plan) {
@@ -72,9 +71,9 @@ final class AgentCommand extends Command
                 $output->writeln('<error>' . implode("\n", $verification->errors) . '</error>');
                 return Command::FAILURE;
             }
-            $command = $agent->executeCommand($project, $prompt . $context);
+            $command = $agent->executeCommand($project, $promptBuilder->build($promptArgument, $resolved));
         } else {
-            $command = $agent->planCommand($project, $prompt . $context . "\nDo not modify files or external state.");
+            $command = $agent->planCommand($project, $promptBuilder->build($promptArgument, $resolved, true));
         }
         $process = new Process($command, $project, null, null, null);
         $process->setTty(Process::isTtySupported());

@@ -10,6 +10,12 @@ Inspect in read-only mode. Record the interpretation, scope, intended changes, r
 
 Follow established project conventions. Write code a human maintainer can understand, debug, and change without reverse-engineering cleverness: prefer clear names, small coherent units, explicit control flow, local patterns, and necessary tests over terse or magical solutions. Stop when conventions conflict or are unclear. Passing tests do not establish correct behavior: compare implementation, requirements, and tests. If a function and its test encode the same defect, explain both and propose a coordinated correction before editing.
 
+### Code and comments
+
+Make the smallest clear change that fully satisfies the approved scope. Avoid needless abstractions, indirection, duplication, speculative generality, dead code, and unrelated cleanup. Follow the repository's existing language, framework, formatter, linter, naming, and documentation conventions; local guidance may be stricter than this baseline but must not weaken it.
+
+Prefer structure and names that make straightforward code explain itself. Add comments when they preserve intent, trade-offs, invariants, non-obvious constraints, or compatibility context that the code cannot communicate clearly. Do not narrate obvious operations. Keep useful comments concise and accurate, update them with the code they describe, and do not remove valuable existing context merely to reduce comment volume.
+
 ## Scope and reporting
 
 Only perform approved work. Project implementation work must happen in the registered checkout under `repos/` for the target project unless the human explicitly approves a specific visible worktree deviation first; never implement from temporary clones, hidden worktrees, or other hidden locations. Agents may use `/private/tmp` for scratch artifacts and isolated review worktrees, but scratch files are not durable project records and do not authorize repository writes, Git metadata/index writes, or implementation outside the registered checkout. Report nearby defects and wait. Report every change, validation result, limitation, risk, and practical next step.
