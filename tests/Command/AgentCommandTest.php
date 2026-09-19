@@ -8,7 +8,10 @@ use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
+use Yaup\Agent\AgentPromptBuilder;
 use Yaup\Command\AgentCommand;
+use Yaup\Config\ConfigLoader;
+use Yaup\Rules\RuleResolver;
 use Yaup\Tests\Support\TemporaryDirectory;
 
 final class AgentCommandTest extends TestCase
@@ -19,12 +22,17 @@ final class AgentCommandTest extends TestCase
     {
         $this->setUpTemporaryDirectory();
         mkdir($this->temporaryDirectory . '/config');
+        mkdir($this->temporaryDirectory . '/policies');
         mkdir($this->temporaryDirectory . '/repos');
         mkdir($this->temporaryDirectory . '/repos/example');
         file_put_contents($this->temporaryDirectory . '/config/yaup.yaml', "projects_directory: repos\nregistry_file: config/repositories.yaml\n");
         file_put_contents(
             $this->temporaryDirectory . '/config/repositories.yaml',
             "schema_version: 1\nrepositories:\n  - name: example\n    path: {$this->temporaryDirectory}/repos/example\n    remote: git@example.com:example/repo.git\n"
+        );
+        file_put_contents(
+            $this->temporaryDirectory . '/policies/rules.yaml',
+            "rules:\n  - id: quality.human-maintainable-code\n    level: mandatory\n    summary: Keep code clear.\n"
         );
     }
 
@@ -87,5 +95,37 @@ final class AgentCommandTest extends TestCase
             'project' => $this->temporaryDirectory . '/repos/example',
             'prompt' => 'fix something',
         ]);
+    }
+
+    public function testRegisteredAgentReceivesTheCanonicalPolicyPrompt(): void
+    {
+        $executable = $this->temporaryDirectory . '/codex';
+        file_put_contents(
+            $executable,
+            "#!/bin/sh\nfor argument in \"\$@\"; do\n    prompt=\$argument\ndone\nprintf '%s' \"\$prompt\"\n"
+        );
+        chmod($executable, 0o755);
+        $originalPath = getenv('PATH');
+        putenv('PATH=' . $this->temporaryDirectory);
+
+        try {
+            $tester = new CommandTester(new AgentCommand($this->temporaryDirectory));
+            $status = $tester->execute([
+                'agent' => 'codex',
+                'project' => $this->temporaryDirectory . '/repos/example',
+                'prompt' => 'Plan the task.',
+            ]);
+        } finally {
+            putenv(false === $originalPath ? 'PATH' : 'PATH=' . $originalPath);
+        }
+
+        $resolved = (new RuleResolver(new ConfigLoader()))->resolve(
+            $this->temporaryDirectory,
+            $this->temporaryDirectory . '/repos/example',
+        );
+        $expected = (new AgentPromptBuilder())->build('Plan the task.', $resolved, true);
+
+        self::assertSame(Command::SUCCESS, $status);
+        self::assertSame($expected, $tester->getDisplay());
     }
 }

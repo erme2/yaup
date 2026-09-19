@@ -56,16 +56,16 @@ final class AgentPolicyDistributionTest extends TestCase
 
         foreach ($registry->names() as $name) {
             $adapter = $registry->get($name);
-            self::assertTrue($this->commandContains($adapter->planCommand($root, $planningPrompt), $planningPrompt), "{$name} planning command omitted or changed shared policy.");
-            self::assertTrue($this->commandContains($adapter->executeCommand($root, $executionPrompt), $executionPrompt), "{$name} execution command omitted or changed shared policy.");
+            self::assertTrue($this->commandContainsPrompt($adapter->planCommand($root, $planningPrompt), $planningPrompt), "{$name} planning command omitted or changed shared policy.");
+            self::assertTrue($this->commandContainsPrompt($adapter->executeCommand($root, $executionPrompt), $executionPrompt), "{$name} execution command omitted or changed shared policy.");
         }
     }
 
     /** @param list<string> $command */
-    private function commandContains(array $command, string $prompt): bool
+    private function commandContainsPrompt(array $command, string $prompt): bool
     {
         foreach ($command as $argument) {
-            if (str_contains($argument, $prompt)) {
+            if ($argument === $prompt || $argument === "Work in plan mode only. {$prompt}") {
                 return true;
             }
         }

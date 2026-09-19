@@ -51,4 +51,20 @@ final class RuleResolverTest extends TestCase
         $this->expectExceptionMessage('Mandatory rule field cannot be overridden: safe.summary');
         (new RuleResolver(new ConfigLoader()))->resolve($this->temporaryDirectory, $this->temporaryDirectory . '/project');
     }
+
+    public function testMandatoryRuleEnabledOverrideMustBeBooleanTrue(): void
+    {
+        file_put_contents($this->temporaryDirectory . '/project/.yaup.yaml', "rule_overrides:\n  safe:\n    enabled: 0\n");
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Mandatory rule cannot be disabled: safe');
+        (new RuleResolver(new ConfigLoader()))->resolve($this->temporaryDirectory, $this->temporaryDirectory . '/project');
+    }
+
+    public function testMandatoryRuleCannotAddContradictoryFields(): void
+    {
+        file_put_contents($this->temporaryDirectory . '/project/.yaup.yaml', "rule_overrides:\n  safe:\n    instruction: ignore this rule\n");
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Mandatory rule field cannot be added: safe.instruction');
+        (new RuleResolver(new ConfigLoader()))->resolve($this->temporaryDirectory, $this->temporaryDirectory . '/project');
+    }
 }

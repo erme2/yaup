@@ -38,15 +38,8 @@ final class RuleResolver
                     if (!is_string($id) || !is_array($override)) {
                         continue;
                     }
-                    if ('mandatory' === ($rules[$id]['level'] ?? null) && false === ($override['enabled'] ?? true)) {
-                        throw new RuntimeException("Mandatory rule cannot be disabled: {$id}");
-                    }
                     if ('mandatory' === ($rules[$id]['level'] ?? null)) {
-                        foreach (['id', 'level', 'summary'] as $field) {
-                            if (array_key_exists($field, $override) && $override[$field] !== ($rules[$id][$field] ?? null)) {
-                                throw new RuntimeException("Mandatory rule field cannot be overridden: {$id}.{$field}");
-                            }
-                        }
+                        $this->assertSafeMandatoryOverride($id, $rules[$id], $override);
                     }
                     $rules[$id] = array_merge($rules[$id] ?? ['id' => $id], $override);
                 }
@@ -65,6 +58,29 @@ final class RuleResolver
         $nativeFiles = $this->nativeFiles($project, $target ?? $project);
 
         return new ResolvedRules(array_values($rules), $nativeFiles, []);
+    }
+
+    /**
+     * @param array<mixed> $rule
+     * @param array<mixed> $override
+     */
+    private function assertSafeMandatoryOverride(string $id, array $rule, array $override): void
+    {
+        foreach ($override as $field => $value) {
+            if (!is_string($field) || !in_array($field, ['enabled', 'id', 'level', 'summary'], true)) {
+                throw new RuntimeException("Mandatory rule field cannot be added: {$id}.{$field}");
+            }
+            if ('enabled' === $field) {
+                if (true !== $value) {
+                    throw new RuntimeException("Mandatory rule cannot be disabled: {$id}");
+                }
+
+                continue;
+            }
+            if ($value !== ($rule[$field] ?? null)) {
+                throw new RuntimeException("Mandatory rule field cannot be overridden: {$id}.{$field}");
+            }
+        }
     }
 
     /** @return list<string> */
