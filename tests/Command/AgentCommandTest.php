@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
+use Symfony\Component\Process\Process;
 use Yaup\Agent\AgentPromptBuilder;
 use Yaup\Command\AgentCommand;
 use Yaup\Config\ConfigLoader;
@@ -99,25 +100,11 @@ final class AgentCommandTest extends TestCase
 
     public function testRegisteredAgentReceivesTheCanonicalPolicyPrompt(): void
     {
-        $executable = $this->temporaryDirectory . '/codex';
-        file_put_contents(
-            $executable,
-            "#!/bin/sh\nfor argument in \"\$@\"; do\n    prompt=\$argument\ndone\nprintf '%s' \"\$prompt\"\n"
-        );
-        chmod($executable, 0o755);
-        $originalPath = getenv('PATH');
-        putenv('PATH=' . $this->temporaryDirectory);
-
-        try {
-            $tester = new CommandTester(new AgentCommand($this->temporaryDirectory));
-            $status = $tester->execute([
-                'agent' => 'codex',
-                'project' => $this->temporaryDirectory . '/repos/example',
-                'prompt' => 'Plan the task.',
-            ]);
-        } finally {
-            putenv(false === $originalPath ? 'PATH' : 'PATH=' . $originalPath);
-        }
+        [$tester, $status] = $this->executeWithFixtureCodex([
+            'agent' => 'codex',
+            'project' => $this->temporaryDirectory . '/repos/example',
+            'prompt' => 'Plan the task.',
+        ]);
 
         $resolved = (new RuleResolver(new ConfigLoader()))->resolve(
             $this->temporaryDirectory,
@@ -127,5 +114,72 @@ final class AgentCommandTest extends TestCase
 
         self::assertSame(Command::SUCCESS, $status);
         self::assertSame($expected, $tester->getDisplay());
+    }
+
+    public function testExecutionModeReceivesCanonicalPolicyAndNativeInstructions(): void
+    {
+        $project = $this->temporaryDirectory . '/repos/example';
+        mkdir($project . '/plans');
+        file_put_contents($project . '/AGENTS.md', '# Project instructions');
+        $plan = $project . '/plans/task.yaml';
+        file_put_contents(
+            $plan,
+            "status: approved\napproval:\n  approved: true\n  approver: human\n  approved_at: '2026-09-19T10:00:00+01:00'\n"
+        );
+        $this->git($project, ['init']);
+        $this->git($project, ['config', 'user.email', 'test@example.com']);
+        $this->git($project, ['config', 'user.name', 'Human']);
+        $this->git($project, ['add', 'plans/task.yaml']);
+        $this->git($project, ['commit', '-m', 'approve plan']);
+
+        [$tester, $status] = $this->executeWithFixtureCodex([
+            'agent' => 'codex',
+            'project' => $project,
+            'prompt' => 'Implement the approved task.',
+            '--execute' => true,
+            '--plan' => $plan,
+        ]);
+
+        $resolved = (new RuleResolver(new ConfigLoader()))->resolve($this->temporaryDirectory, $project);
+        $expected = (new AgentPromptBuilder())->build('Implement the approved task.', $resolved);
+
+        self::assertSame(Command::SUCCESS, $status);
+        self::assertSame($expected, $tester->getDisplay());
+        self::assertStringContainsString($project . '/AGENTS.md', $tester->getDisplay());
+    }
+
+    /**
+     * @param array<string, mixed> $arguments
+     *
+     * @return array{CommandTester, int}
+     */
+    private function executeWithFixtureCodex(array $arguments): array
+    {
+        $executable = $this->temporaryDirectory . '/codex';
+        file_put_contents(
+            $executable,
+            "#!/bin/sh\nfor argument in \"\$@\"; do\n    prompt=\$argument\ndone\nprintf '%s' \"\$prompt\"\n"
+        );
+        chmod($executable, 0o755);
+        $originalPath = getenv('PATH');
+        $fixturePath = false === $originalPath
+            ? $this->temporaryDirectory
+            : $this->temporaryDirectory . PATH_SEPARATOR . $originalPath;
+        putenv('PATH=' . $fixturePath);
+
+        try {
+            $tester = new CommandTester(new AgentCommand($this->temporaryDirectory));
+            $status = $tester->execute($arguments);
+        } finally {
+            putenv(false === $originalPath ? 'PATH' : 'PATH=' . $originalPath);
+        }
+
+        return [$tester, $status];
+    }
+
+    /** @param list<string> $arguments */
+    private function git(string $repository, array $arguments): void
+    {
+        (new Process(['git', '-C', $repository, ...$arguments]))->mustRun();
     }
 }
