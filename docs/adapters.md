@@ -1,9 +1,9 @@
 # Agent Adapters
 
 Yaup runs supported coding CLIs through small adapter classes. The shared `agent`
-command resolves Yaup policy once, checks that the target is a registered
-checkout, verifies plan approval for execution mode, and then asks the selected
-adapter to build the native command line for that CLI.
+command resolves Yaup policy once, renders one canonical prompt, checks that the
+target is a registered checkout, verifies plan approval for execution mode, and
+then asks the selected adapter to build the native command line for that CLI.
 
 ## Contract
 
@@ -35,6 +35,9 @@ weakening Yaup's policy prompt.
 
 Return argv arrays rather than shell strings. `AgentCommand` passes them to
 Symfony Process directly so adapter arguments are not re-parsed by a shell.
+Adapters must pass the prompt through unchanged except for a vendor-required
+planning prefix. Shared policy belongs in `policies/`, not in adapter-specific
+prompt fragments.
 
 ## Mode Enforcement
 

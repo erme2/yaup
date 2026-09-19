@@ -14,13 +14,13 @@ rules:
     summary: Report unrelated defects and wait for authorization before fixing them.
   - id: tickets.type-prefix
     level: mandatory
-    summary: Ticket titles must start with bugfix:, hotfix:, or feature: according to the work type.
+    summary: 'Ticket titles must start with bugfix:, hotfix:, or feature: according to the work type.'
   - id: quality.behavior-over-tests
     level: mandatory
     summary: Treat tests as evidence, not truth; propose fixes to incorrect behavior and incorrect tests together.
   - id: quality.human-maintainable-code
     level: mandatory
-    summary: Write clear, conventional code that a human maintainer can understand, debug, and change; avoid clever, terse, or magical solutions.
+    summary: Make the smallest clear change that follows repository conventions; avoid needless abstraction, indirection, duplication, speculative code, dead code, and unrelated cleanup; prefer self-explanatory structure and names, and write concise comments only for useful non-obvious context while preserving valuable existing comments.
   - id: quality.validate
     level: mandatory
     summary: Run every configured validation category and disclose every check that could not run.

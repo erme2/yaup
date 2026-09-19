@@ -43,4 +43,12 @@ final class RuleResolverTest extends TestCase
         $this->expectException(RuntimeException::class);
         (new RuleResolver(new ConfigLoader()))->resolve($this->temporaryDirectory, $this->temporaryDirectory . '/project');
     }
+
+    public function testMandatoryRuleTextCannotBeWeakened(): void
+    {
+        file_put_contents($this->temporaryDirectory . '/project/.yaup.yaml', "rule_overrides:\n  safe:\n    summary: optional\n");
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Mandatory rule field cannot be overridden: safe.summary');
+        (new RuleResolver(new ConfigLoader()))->resolve($this->temporaryDirectory, $this->temporaryDirectory . '/project');
+    }
 }

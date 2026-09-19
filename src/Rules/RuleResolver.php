@@ -41,6 +41,13 @@ final class RuleResolver
                     if ('mandatory' === ($rules[$id]['level'] ?? null) && false === ($override['enabled'] ?? true)) {
                         throw new RuntimeException("Mandatory rule cannot be disabled: {$id}");
                     }
+                    if ('mandatory' === ($rules[$id]['level'] ?? null)) {
+                        foreach (['id', 'level', 'summary'] as $field) {
+                            if (array_key_exists($field, $override) && $override[$field] !== ($rules[$id][$field] ?? null)) {
+                                throw new RuntimeException("Mandatory rule field cannot be overridden: {$id}.{$field}");
+                            }
+                        }
+                    }
                     $rules[$id] = array_merge($rules[$id] ?? ['id' => $id], $override);
                 }
             }
