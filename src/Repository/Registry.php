@@ -10,6 +10,40 @@ final class Registry
 {
     public function __construct(private readonly ConfigLoader $loader) {}
 
+    /** @return array<string, string> */
+    public function registeredPaths(string $root): array
+    {
+        $config = $this->loader->load($root . '/config/yaup.yaml');
+        $registryFile = $config['registry_file'] ?? 'config/repositories.yaml';
+        if (!is_string($registryFile) || '' === $registryFile) {
+            throw new \RuntimeException('registry_file must be a non-empty string.');
+        }
+
+        $registry = $this->loader->load($root . '/' . $registryFile);
+        $rows = $registry['repositories'] ?? [];
+        if (!is_array($rows)) {
+            throw new \RuntimeException('repositories must be a list.');
+        }
+
+        $repositories = [];
+        foreach ($rows as $index => $row) {
+            if (
+                !is_array($row)
+                || !isset($row['name'], $row['path'])
+                || !is_string($row['name'])
+                || '' === $row['name']
+                || !is_string($row['path'])
+                || '' === $row['path']
+            ) {
+                throw new \RuntimeException("repositories[{$index}] name and path must be non-empty strings.");
+            }
+
+            $repositories[$row['name']] = $row['path'];
+        }
+
+        return $repositories;
+    }
+
     /** @param list<Repository> $discovered */
     public function synchronize(string $path, array $discovered): int
     {

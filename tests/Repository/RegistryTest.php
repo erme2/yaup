@@ -37,4 +37,30 @@ final class RegistryTest extends TestCase
         self::assertCount(1, $data['repositories']);
         self::assertSame('remote', $data['repositories'][0]['name']);
     }
+
+    public function testReturnsRegisteredPathsByName(): void
+    {
+        mkdir($this->temporaryDirectory . '/config');
+        file_put_contents($this->temporaryDirectory . '/config/yaup.yaml', "registry_file: config/repositories.yaml\n");
+        file_put_contents(
+            $this->temporaryDirectory . '/config/repositories.yaml',
+            "repositories:\n  - name: example\n    path: /repos/example\n    remote: git@example.com:example/repo.git\n"
+        );
+
+        self::assertSame(
+            ['example' => '/repos/example'],
+            (new Registry(new ConfigLoader()))->registeredPaths($this->temporaryDirectory),
+        );
+    }
+
+    public function testRejectsMalformedRegisteredRepository(): void
+    {
+        mkdir($this->temporaryDirectory . '/config');
+        file_put_contents($this->temporaryDirectory . '/config/yaup.yaml', "registry_file: config/repositories.yaml\n");
+        file_put_contents($this->temporaryDirectory . '/config/repositories.yaml', "repositories:\n  - name: example\n");
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('repositories[0] name and path must be non-empty strings.');
+        (new Registry(new ConfigLoader()))->registeredPaths($this->temporaryDirectory);
+    }
 }

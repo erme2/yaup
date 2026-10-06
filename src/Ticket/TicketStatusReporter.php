@@ -6,6 +6,7 @@ namespace Yaup\Ticket;
 
 use Symfony\Component\Process\Process;
 use Yaup\Config\ConfigLoader;
+use Yaup\Repository\Registry;
 
 final class TicketStatusReporter
 {
@@ -43,24 +44,8 @@ final class TicketStatusReporter
     private function repositories(): array
     {
         $repositories = ['yaup' => $this->root];
-        $config = $this->loader->load($this->root . '/config/yaup.yaml');
-        $registryFile = $config['registry_file'] ?? 'config/repositories.yaml';
-        if (!is_string($registryFile) || '' === $registryFile) {
-            throw new \RuntimeException('registry_file must be a non-empty string.');
-        }
-
-        $registry = $this->loader->load($this->root . '/' . $registryFile);
-        $registered = $registry['repositories'] ?? [];
-        if (!is_array($registered)) {
-            throw new \RuntimeException('repositories must be a list.');
-        }
-
-        foreach ($registered as $repository) {
-            if (!is_array($repository) || !isset($repository['name'], $repository['path']) || !is_string($repository['name']) || !is_string($repository['path'])) {
-                continue;
-            }
-
-            $repositories[$repository['name']] = $repository['path'];
+        foreach ((new Registry($this->loader))->registeredPaths($this->root) as $name => $path) {
+            $repositories[$name] = $path;
         }
 
         ksort($repositories);

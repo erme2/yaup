@@ -96,6 +96,17 @@ final class TicketStatusCommandTest extends TestCase
         self::assertStringContainsString('Unknown registered project: nope', $tester->getDisplay());
     }
 
+    public function testMalformedRepositoryFailsClearly(): void
+    {
+        file_put_contents($this->temporaryDirectory . '/config/repositories.yaml', "repositories:\n  - name: example\n");
+
+        $tester = new CommandTester(new TicketStatusCommand($this->temporaryDirectory));
+        $status = $tester->execute(['ticket' => '20']);
+
+        self::assertSame(Command::FAILURE, $status);
+        self::assertStringContainsString('repositories[0] name and path must be non-empty strings.', $tester->getDisplay());
+    }
+
     /** @param list<string> $arguments */
     private function git(string $path, array $arguments): void
     {

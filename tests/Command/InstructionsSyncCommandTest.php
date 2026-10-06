@@ -132,4 +132,16 @@ final class InstructionsSyncCommandTest extends TestCase
         self::assertStringContainsString('write failed', $tester->getDisplay());
         self::assertStringContainsString('Failed to write one or more Yaup agent bridge files.', $tester->getDisplay());
     }
+
+    public function testMalformedRepositoryFailsBeforeWriting(): void
+    {
+        file_put_contents($this->temporaryDirectory . '/config/repositories.yaml', "repositories:\n  - name: example\n");
+
+        $tester = new CommandTester(new InstructionsSyncCommand($this->temporaryDirectory));
+        $status = $tester->execute([]);
+
+        self::assertSame(Command::INVALID, $status);
+        self::assertFileDoesNotExist($this->temporaryDirectory . '/repos/example/AGENTS.md');
+        self::assertStringContainsString('repositories[0] name and path must be non-empty strings.', $tester->getDisplay());
+    }
 }

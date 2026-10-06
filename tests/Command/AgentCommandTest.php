@@ -98,6 +98,21 @@ final class AgentCommandTest extends TestCase
         ]);
     }
 
+    public function testMalformedRepositoryFailsClearly(): void
+    {
+        file_put_contents($this->temporaryDirectory . '/config/repositories.yaml', "repositories:\n  - name: example\n");
+
+        $tester = new CommandTester(new AgentCommand($this->temporaryDirectory));
+        $status = $tester->execute([
+            'agent' => 'codex',
+            'project' => $this->temporaryDirectory . '/repos/example',
+            'prompt' => 'Plan the task.',
+        ]);
+
+        self::assertSame(Command::FAILURE, $status);
+        self::assertStringContainsString('repositories[0] name and path must be non-empty strings.', $tester->getDisplay());
+    }
+
     public function testRegisteredAgentReceivesTheCanonicalPolicyPrompt(): void
     {
         [$tester, $status] = $this->executeWithFixtureCodex([

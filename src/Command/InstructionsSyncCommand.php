@@ -11,6 +11,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Yaup\Config\ConfigLoader;
+use Yaup\Repository\Registry;
 
 #[AsCommand(name: 'instructions:sync', description: 'Create or refresh Yaup AGENTS.md bridge files in registered repositories')]
 final class InstructionsSyncCommand extends Command
@@ -31,17 +32,11 @@ final class InstructionsSyncCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
         $loader = new ConfigLoader();
-        $config = $loader->load($this->root . '/config/yaup.yaml');
-        $registryFile = $config['registry_file'] ?? 'config/repositories.yaml';
-        if (!is_string($registryFile) || '' === $registryFile) {
-            $io->error('registry_file must be a non-empty string.');
-            return Command::INVALID;
-        }
+        try {
+            $registered = (new Registry($loader))->registeredPaths($this->root);
+        } catch (\RuntimeException $exception) {
+            $io->error($exception->getMessage());
 
-        $registry = $loader->load($this->root . '/' . $registryFile);
-        $repositories = $registry['repositories'] ?? [];
-        if (!is_array($repositories)) {
-            $io->error('repositories must be a list.');
             return Command::INVALID;
         }
 
@@ -57,15 +52,6 @@ final class InstructionsSyncCommand extends Command
                 return Command::INVALID;
             }
             $selectedProjects[] = $project;
-        }
-
-        $registered = [];
-        foreach ($repositories as $repository) {
-            if (!is_array($repository) || !isset($repository['name'], $repository['path']) || !is_string($repository['name']) || !is_string($repository['path'])) {
-                continue;
-            }
-
-            $registered[$repository['name']] = $repository['path'];
         }
 
         $unknownProjects = array_values(array_diff($selectedProjects, array_keys($registered)));
