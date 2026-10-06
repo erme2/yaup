@@ -85,6 +85,16 @@ final class RegistryTest extends TestCase
         (new Registry(new ConfigLoader()))->registeredPaths($this->temporaryDirectory);
     }
 
+    public function testSynchronizeRejectsMalformedExistingRepository(): void
+    {
+        $path = $this->temporaryDirectory . '/repositories.yaml';
+        file_put_contents($path, "repositories:\n  - name: example\n");
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('repositories[0] name and path must be non-empty strings.');
+        (new Registry(new ConfigLoader()))->synchronize($path, []);
+    }
+
     public function testRejectsAssociativeRegisteredRepositories(): void
     {
         mkdir($this->temporaryDirectory . '/config');

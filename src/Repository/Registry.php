@@ -25,12 +25,29 @@ final class Registry
     public function registeredPaths(string $root): array
     {
         $registry = $this->loader->load($this->path($root));
-        $rows = $registry['repositories'] ?? [];
+        return $this->registeredPathsFromRows($registry['repositories'] ?? []);
+    }
+
+    /** @return array<string, string> */
+    private function registeredPathsFromRows(mixed $rows): array
+    {
+        $validatedRows = $this->validatedRows($rows);
+        $repositories = [];
+        foreach ($validatedRows as $row) {
+            $repositories[$row['name']] = $row['path'];
+        }
+
+        return $repositories;
+    }
+
+    /** @return list<array{raw: array<int|string, mixed>, name: string, path: string, remote: string}> */
+    private function validatedRows(mixed $rows): array
+    {
         if (!is_array($rows) || !array_is_list($rows)) {
             throw new \RuntimeException('repositories must be a list.');
         }
 
-        $repositories = [];
+        $validatedRows = [];
         foreach ($rows as $index => $row) {
             if (
                 !is_array($row)
@@ -49,10 +66,19 @@ final class Registry
                 throw new \RuntimeException("repositories[{$index}] name must remain a string array key.");
             }
 
-            $repositories[$row['name']] = $row['path'];
+            if (!isset($row['remote']) || !is_string($row['remote']) || '' === $row['remote']) {
+                throw new \RuntimeException("repositories[{$index}] remote must be a non-empty string.");
+            }
+
+            $validatedRows[] = [
+                'raw' => $row,
+                'name' => $row['name'],
+                'path' => $row['path'],
+                'remote' => $row['remote'],
+            ];
         }
 
-        return $repositories;
+        return $validatedRows;
     }
 
     /** @param list<Repository> $discovered */
@@ -61,12 +87,8 @@ final class Registry
         $current = is_file($path) ? $this->loader->load($path) : ['schema_version' => 1, 'repositories' => []];
         $rows = $current['repositories'] ?? [];
         $byRemote = [];
-        if (is_array($rows)) {
-            foreach ($rows as $row) {
-                if (is_array($row) && isset($row['remote']) && is_string($row['remote'])) {
-                    $byRemote[$row['remote']] = $row;
-                }
-            }
+        foreach ($this->validatedRows($rows) as $row) {
+            $byRemote[$row['remote']] = $row['raw'];
         }
 
         $added = 0;
