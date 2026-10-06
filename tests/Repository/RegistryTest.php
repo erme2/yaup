@@ -53,6 +53,27 @@ final class RegistryTest extends TestCase
         );
     }
 
+    public function testResolvesRegistryPathFromRootConfiguration(): void
+    {
+        mkdir($this->temporaryDirectory . '/config');
+        file_put_contents($this->temporaryDirectory . '/config/yaup.yaml', "registry_file: data/registered.yaml\n");
+
+        self::assertSame(
+            $this->temporaryDirectory . '/data/registered.yaml',
+            (new Registry(new ConfigLoader()))->path($this->temporaryDirectory),
+        );
+    }
+
+    public function testRejectsEmptyRegistryFile(): void
+    {
+        mkdir($this->temporaryDirectory . '/config');
+        file_put_contents($this->temporaryDirectory . '/config/yaup.yaml', "registry_file: ''\n");
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('registry_file must be a non-empty string.');
+        (new Registry(new ConfigLoader()))->path($this->temporaryDirectory);
+    }
+
     public function testRejectsMalformedRegisteredRepository(): void
     {
         mkdir($this->temporaryDirectory . '/config');

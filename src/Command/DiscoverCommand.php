@@ -27,14 +27,19 @@ final class DiscoverCommand extends Command
         $loader = new ConfigLoader();
         $config = $loader->load($this->root . '/config/yaup.yaml');
         $projectsDirectory = $config['projects_directory'] ?? 'repos';
-        $registryFile = $config['registry_file'] ?? 'config/repositories.yaml';
-        if (!is_string($projectsDirectory) || !is_string($registryFile)) {
-            $io->error('projects_directory and registry_file must be strings.');
+        if (!is_string($projectsDirectory)) {
+            $io->error('projects_directory must be a string.');
             return Command::INVALID;
         }
         $projects = $this->root . '/' . $projectsDirectory;
         $repositories = (new RepositoryDiscoverer())->discover($projects);
-        $added = (new Registry($loader))->synchronize($this->root . '/' . $registryFile, $repositories);
+        $registry = new Registry($loader);
+        try {
+            $added = $registry->synchronize($registry->path($this->root), $repositories);
+        } catch (\RuntimeException $exception) {
+            $io->error($exception->getMessage());
+            return Command::INVALID;
+        }
         $io->table(['Project', 'Remote', 'Cross-repository CI'], array_map(
             static fn($repo): array => [$repo->name, $repo->remote ?? '-', null === $repo->remote ? 'excluded' : 'registered'],
             $repositories,
