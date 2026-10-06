@@ -21,7 +21,7 @@ final class Registry
 
         $registry = $this->loader->load($root . '/' . $registryFile);
         $rows = $registry['repositories'] ?? [];
-        if (!is_array($rows)) {
+        if (!is_array($rows) || !array_is_list($rows)) {
             throw new \RuntimeException('repositories must be a list.');
         }
 
@@ -36,6 +36,12 @@ final class Registry
                 || '' === $row['path']
             ) {
                 throw new \RuntimeException("repositories[{$index}] name and path must be non-empty strings.");
+            }
+
+            $keyProbe = [];
+            $keyProbe[$row['name']] = true;
+            if (array_key_first($keyProbe) !== $row['name']) {
+                throw new \RuntimeException("repositories[{$index}] name must remain a string array key.");
             }
 
             $repositories[$row['name']] = $row['path'];
