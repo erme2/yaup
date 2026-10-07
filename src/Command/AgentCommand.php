@@ -52,7 +52,7 @@ final class AgentCommand extends Command
         try {
             $registeredProjects = array_map(
                 fn(string $path): string => $this->normalizePath(realpath($path) ?: $path),
-                array_values((new Registry($loader))->registeredPaths($this->root)),
+                array_column((new Registry($loader))->registeredPaths($this->root), 'path'),
             );
         } catch (\RuntimeException $exception) {
             $output->writeln('<error>' . $exception->getMessage() . '</error>');

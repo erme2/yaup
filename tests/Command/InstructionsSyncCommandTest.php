@@ -59,6 +59,21 @@ final class InstructionsSyncCommandTest extends TestCase
         self::assertStringNotContainsString('other', $tester->getDisplay());
     }
 
+    public function testCanSyncNumericProjectNames(): void
+    {
+        $path = $this->temporaryDirectory . '/config/repositories.yaml';
+        $contents = (string) file_get_contents($path);
+        file_put_contents($path, str_replace('name: example', "name: '123'", $contents));
+
+        $tester = new CommandTester(new InstructionsSyncCommand($this->temporaryDirectory));
+        $status = $tester->execute(['project' => ['123']]);
+
+        self::assertSame(Command::SUCCESS, $status);
+        self::assertFileExists($this->temporaryDirectory . '/repos/example/AGENTS.md');
+        self::assertFileDoesNotExist($this->temporaryDirectory . '/repos/other/AGENTS.md');
+        self::assertStringContainsString('registered with Yaup as `123`', (string) file_get_contents($this->temporaryDirectory . '/repos/example/AGENTS.md'));
+    }
+
     public function testUnknownSelectedProjectFails(): void
     {
         $tester = new CommandTester(new InstructionsSyncCommand($this->temporaryDirectory));

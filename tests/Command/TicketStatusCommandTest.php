@@ -87,6 +87,21 @@ final class TicketStatusCommandTest extends TestCase
         self::assertStringNotContainsString('yaup', $display);
     }
 
+    public function testCanFilterNumericProjectNames(): void
+    {
+        $path = $this->temporaryDirectory . '/config/repositories.yaml';
+        $contents = (string) file_get_contents($path);
+        file_put_contents($path, str_replace('name: example', "name: '123'", $contents));
+
+        $tester = new CommandTester(new TicketStatusCommand($this->temporaryDirectory));
+        $status = $tester->execute(['ticket' => '20', 'project' => ['123']]);
+
+        self::assertSame(Command::SUCCESS, $status);
+        self::assertStringContainsString('123', $tester->getDisplay());
+        self::assertStringContainsString('feature/20-cross-repo-status', $tester->getDisplay());
+        self::assertStringNotContainsString('yaup', $tester->getDisplay());
+    }
+
     public function testUnknownProjectFailsClearly(): void
     {
         $tester = new CommandTester(new TicketStatusCommand($this->temporaryDirectory));

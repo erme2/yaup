@@ -21,23 +21,16 @@ final class Registry
         return $root . '/' . $registryFile;
     }
 
-    /** @return array<string, string> */
+    /** @return list<array{name: string, path: string}> */
     public function registeredPaths(string $root): array
     {
         $registry = $this->loader->load($this->path($root));
-        return $this->registeredPathsFromRows($registry['repositories'] ?? []);
-    }
-
-    /** @return array<string, string> */
-    private function registeredPathsFromRows(mixed $rows): array
-    {
-        $validatedRows = $this->validatedRows($rows);
         $repositories = [];
-        foreach ($validatedRows as $row) {
-            $repositories[$row['name']] = $row['path'];
+        foreach ($this->validatedRows($registry['repositories'] ?? []) as $row) {
+            $repositories[$row['name']] = ['name' => $row['name'], 'path' => $row['path']];
         }
 
-        return $repositories;
+        return array_values($repositories);
     }
 
     /** @return list<array{raw: array<int|string, mixed>, name: string, path: string, remote: string}> */
@@ -58,12 +51,6 @@ final class Registry
                 || '' === $row['path']
             ) {
                 throw new \RuntimeException("repositories[{$index}] name and path must be non-empty strings.");
-            }
-
-            $keyProbe = [];
-            $keyProbe[$row['name']] = true;
-            if (array_key_first($keyProbe) !== $row['name']) {
-                throw new \RuntimeException("repositories[{$index}] name must remain a string array key.");
             }
 
             if (!isset($row['remote']) || !is_string($row['remote']) || '' === $row['remote']) {

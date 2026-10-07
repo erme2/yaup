@@ -23,13 +23,15 @@ final class TicketStatusReporter
     public function report(TicketReference $ticket, array $selectedProjects = []): array
     {
         $repositories = $this->repositories();
-        $unknownProjects = array_values(array_diff($selectedProjects, array_keys($repositories)));
+        $unknownProjects = array_values(array_diff($selectedProjects, array_column($repositories, 'name')));
         if ([] !== $unknownProjects) {
             throw new \InvalidArgumentException('Unknown registered project: ' . implode(', ', $unknownProjects));
         }
 
         $rows = [];
-        foreach ($repositories as $name => $path) {
+        foreach ($repositories as $repository) {
+            $name = $repository['name'];
+            $path = $repository['path'];
             if ([] !== $selectedProjects && !in_array($name, $selectedProjects, true)) {
                 continue;
             }
@@ -40,17 +42,17 @@ final class TicketStatusReporter
         return $rows;
     }
 
-    /** @return array<string, string> */
+    /** @return list<array{name: string, path: string}> */
     private function repositories(): array
     {
-        $repositories = ['yaup' => $this->root];
-        foreach ((new Registry($this->loader))->registeredPaths($this->root) as $name => $path) {
-            $repositories[$name] = $path;
+        $repositories = ['yaup' => ['name' => 'yaup', 'path' => $this->root]];
+        foreach ((new Registry($this->loader))->registeredPaths($this->root) as $repository) {
+            $repositories[$repository['name']] = $repository;
         }
 
         ksort($repositories);
 
-        return $repositories;
+        return array_values($repositories);
     }
 
     private function status(string $name, string $path, TicketReference $ticket): TicketStatus

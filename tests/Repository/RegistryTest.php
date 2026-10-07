@@ -48,7 +48,7 @@ final class RegistryTest extends TestCase
         );
 
         self::assertSame(
-            ['example' => '/repos/example'],
+            [['name' => 'example', 'path' => '/repos/example']],
             (new Registry(new ConfigLoader()))->registeredPaths($this->temporaryDirectory),
         );
     }
@@ -114,10 +114,10 @@ final class RegistryTest extends TestCase
         $path = $this->temporaryDirectory . '/repositories.yaml';
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('repositories[0] name must remain a string array key.');
+        $this->expectExceptionMessage('repositories[0] name and path must be non-empty strings.');
         try {
             (new Registry(new ConfigLoader()))->synchronize($path, [
-                new Repository('123', '/repos/123', 'git@example.com:example/123.git'),
+                new Repository('', '/repos/invalid', 'git@example.com:example/123.git'),
             ]);
         } finally {
             self::assertFileDoesNotExist($path);
@@ -131,28 +131,33 @@ final class RegistryTest extends TestCase
         file_put_contents($path, $original);
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('repositories[0] name must remain a string array key.');
+        $this->expectExceptionMessage('repositories[0] name and path must be non-empty strings.');
         try {
             (new Registry(new ConfigLoader()))->synchronize($path, [
                 new Repository('valid', '/repos/valid', 'git@example.com:example/valid.git'),
-                new Repository('123', '/repos/123', 'git@example.com:example/123.git'),
+                new Repository('', '/repos/invalid', 'git@example.com:example/123.git'),
             ]);
         } finally {
             self::assertSame($original, file_get_contents($path));
         }
     }
 
-    public function testRejectsNumericRegisteredRepositoryName(): void
+    public function testSynchronizePreservesNumericRepositoryNames(): void
     {
         mkdir($this->temporaryDirectory . '/config');
         file_put_contents($this->temporaryDirectory . '/config/yaup.yaml', "registry_file: config/repositories.yaml\n");
-        file_put_contents(
-            $this->temporaryDirectory . '/config/repositories.yaml',
-            "repositories:\n  - name: '123'\n    path: /repos/example\n"
-        );
+        $path = $this->temporaryDirectory . '/config/repositories.yaml';
+        $registry = new Registry(new ConfigLoader());
+        $repositories = [
+            new Repository('123', '/repos/123', 'git@example.com:example/123.git'),
+            new Repository('0123', '/repos/0123', 'git@example.com:example/0123.git'),
+        ];
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('repositories[0] name must remain a string array key.');
-        (new Registry(new ConfigLoader()))->registeredPaths($this->temporaryDirectory);
+        self::assertSame(2, $registry->synchronize($path, $repositories));
+        self::assertSame(0, $registry->synchronize($path, $repositories));
+        self::assertSame([
+            ['name' => '0123', 'path' => '/repos/0123'],
+            ['name' => '123', 'path' => '/repos/123'],
+        ], $registry->registeredPaths($this->temporaryDirectory));
     }
 }

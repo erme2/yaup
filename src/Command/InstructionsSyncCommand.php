@@ -54,7 +54,7 @@ final class InstructionsSyncCommand extends Command
             $selectedProjects[] = $project;
         }
 
-        $unknownProjects = array_values(array_diff($selectedProjects, array_keys($registered)));
+        $unknownProjects = array_values(array_diff($selectedProjects, array_column($registered, 'name')));
         if ([] !== $unknownProjects) {
             $io->error('Unknown registered project: ' . implode(', ', $unknownProjects));
             return Command::FAILURE;
@@ -62,7 +62,9 @@ final class InstructionsSyncCommand extends Command
 
         $rows = [];
         $failed = false;
-        foreach ($registered as $name => $path) {
+        foreach ($registered as $repository) {
+            $name = $repository['name'];
+            $path = $repository['path'];
             if ([] !== $selectedProjects && !in_array($name, $selectedProjects, true)) {
                 continue;
             }
