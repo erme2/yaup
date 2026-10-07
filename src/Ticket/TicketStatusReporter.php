@@ -45,6 +45,7 @@ final class TicketStatusReporter
     /** @return list<array{name: string, path: string}> */
     private function repositories(): array
     {
+        // Name-based commands retain the last registration for each name.
         $repositories = ['yaup' => ['name' => 'yaup', 'path' => $this->root]];
         foreach ((new Registry($this->loader))->registeredPaths($this->root) as $repository) {
             $repositories[$repository['name']] = $repository;

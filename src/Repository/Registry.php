@@ -27,10 +27,10 @@ final class Registry
         $registry = $this->loader->load($this->path($root));
         $repositories = [];
         foreach ($this->validatedRows($registry['repositories'] ?? []) as $row) {
-            $repositories[$row['name']] = ['name' => $row['name'], 'path' => $row['path']];
+            $repositories[] = ['name' => $row['name'], 'path' => $row['path']];
         }
 
-        return array_values($repositories);
+        return $repositories;
     }
 
     /** @return list<array{raw: array<int|string, mixed>, name: string, path: string, remote: string}> */

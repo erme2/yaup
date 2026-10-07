@@ -102,6 +102,19 @@ final class TicketStatusCommandTest extends TestCase
         self::assertStringNotContainsString('yaup', $tester->getDisplay());
     }
 
+    public function testDuplicateNamesUseTheLastRegistration(): void
+    {
+        file_put_contents(
+            $this->temporaryDirectory . '/config/repositories.yaml',
+            "  - name: example\n    path: {$this->temporaryDirectory}/repos/missing-parent/missing\n    remote: git@example.com:last.git\n",
+            FILE_APPEND,
+        );
+        $tester = new CommandTester(new TicketStatusCommand($this->temporaryDirectory));
+        self::assertSame(Command::SUCCESS, $tester->execute(['ticket' => '20', 'project' => ['example']]));
+        self::assertStringContainsString('missing', $tester->getDisplay());
+        self::assertStringNotContainsString('feature/20-cross-repo-status', $tester->getDisplay());
+    }
+
     public function testUnknownProjectFailsClearly(): void
     {
         $tester = new CommandTester(new TicketStatusCommand($this->temporaryDirectory));

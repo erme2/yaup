@@ -74,6 +74,19 @@ final class InstructionsSyncCommandTest extends TestCase
         self::assertStringContainsString('registered with Yaup as `123`', (string) file_get_contents($this->temporaryDirectory . '/repos/example/AGENTS.md'));
     }
 
+    public function testDuplicateNamesUseTheLastRegistration(): void
+    {
+        file_put_contents(
+            $this->temporaryDirectory . '/config/repositories.yaml',
+            "  - name: example\n    path: {$this->temporaryDirectory}/repos/other\n    remote: git@example.com:last.git\n",
+            FILE_APPEND,
+        );
+        $tester = new CommandTester(new InstructionsSyncCommand($this->temporaryDirectory));
+        self::assertSame(Command::SUCCESS, $tester->execute(['project' => ['example']]));
+        self::assertFileDoesNotExist($this->temporaryDirectory . '/repos/example/AGENTS.md');
+        self::assertFileExists($this->temporaryDirectory . '/repos/other/AGENTS.md');
+    }
+
     public function testUnknownSelectedProjectFails(): void
     {
         $tester = new CommandTester(new InstructionsSyncCommand($this->temporaryDirectory));

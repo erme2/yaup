@@ -33,7 +33,8 @@ final class InstructionsSyncCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $loader = new ConfigLoader();
         try {
-            $registered = (new Registry($loader))->registeredPaths($this->root);
+            // Name-based commands retain the last registration for each name.
+            $registered = array_column((new Registry($loader))->registeredPaths($this->root), null, 'name');
         } catch (\RuntimeException $exception) {
             $io->error($exception->getMessage());
 

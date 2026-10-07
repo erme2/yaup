@@ -53,6 +53,22 @@ final class RegistryTest extends TestCase
         );
     }
 
+    public function testPreservesEveryPathWhenNamesRepeat(): void
+    {
+        mkdir($this->temporaryDirectory . '/config');
+        file_put_contents($this->temporaryDirectory . '/config/yaup.yaml', "registry_file: config/repositories.yaml\n");
+        $registry = new Registry(new ConfigLoader());
+        $registry->synchronize($this->temporaryDirectory . '/config/repositories.yaml', [
+            new Repository('example', '/repos/first', 'git@example.com:first.git'),
+            new Repository('example', '/repos/second', 'git@example.com:second.git'),
+        ]);
+
+        self::assertSame([
+            ['name' => 'example', 'path' => '/repos/first'],
+            ['name' => 'example', 'path' => '/repos/second'],
+        ], $registry->registeredPaths($this->temporaryDirectory));
+    }
+
     public function testResolvesRegistryPathFromRootConfiguration(): void
     {
         mkdir($this->temporaryDirectory . '/config');
