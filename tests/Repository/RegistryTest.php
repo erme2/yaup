@@ -109,6 +109,39 @@ final class RegistryTest extends TestCase
         (new Registry(new ConfigLoader()))->registeredPaths($this->temporaryDirectory);
     }
 
+    public function testSynchronizeDoesNotCreateRegistryForInvalidDiscoveredRepository(): void
+    {
+        $path = $this->temporaryDirectory . '/repositories.yaml';
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('repositories[0] name must remain a string array key.');
+        try {
+            (new Registry(new ConfigLoader()))->synchronize($path, [
+                new Repository('123', '/repos/123', 'git@example.com:example/123.git'),
+            ]);
+        } finally {
+            self::assertFileDoesNotExist($path);
+        }
+    }
+
+    public function testSynchronizePreservesRegistryWhenDiscoveredRepositoryIsInvalid(): void
+    {
+        $path = $this->temporaryDirectory . '/repositories.yaml';
+        $original = "# Keep this registry unchanged on failure.\nrepositories:\n  - name: example\n    path: /repos/example\n    remote: git@example.com:example/repo.git\n";
+        file_put_contents($path, $original);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('repositories[0] name must remain a string array key.');
+        try {
+            (new Registry(new ConfigLoader()))->synchronize($path, [
+                new Repository('valid', '/repos/valid', 'git@example.com:example/valid.git'),
+                new Repository('123', '/repos/123', 'git@example.com:example/123.git'),
+            ]);
+        } finally {
+            self::assertSame($original, file_get_contents($path));
+        }
+    }
+
     public function testRejectsNumericRegisteredRepositoryName(): void
     {
         mkdir($this->temporaryDirectory . '/config');

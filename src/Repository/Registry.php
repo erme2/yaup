@@ -102,6 +102,7 @@ final class Registry
         ksort($byRemote);
         $current['schema_version'] = 1;
         $current['repositories'] = array_values($byRemote);
+        $this->validatedRows($current['repositories']);
         file_put_contents($path, $this->loader->dump($current));
 
         return $added;
