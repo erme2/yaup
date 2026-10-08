@@ -15,6 +15,7 @@ use Yaup\Agent\AdapterRegistry;
 use Yaup\Agent\AgentPromptBuilder;
 use Yaup\Config\ConfigLoader;
 use Yaup\Plan\PlanVerifier;
+use Yaup\Repository\Registry;
 use Yaup\Rules\RuleResolver;
 
 #[AsCommand(name: 'agent', description: 'Launch a supported agent in mechanically constrained plan or execution mode')]
@@ -43,13 +44,21 @@ final class AgentCommand extends Command
         $loader = new ConfigLoader();
         $config = $loader->load($this->root . '/config/yaup.yaml');
         $projectsDirectory = $config['projects_directory'] ?? 'repos';
-        $registryFile = $config['registry_file'] ?? 'config/repositories.yaml';
-        if (!is_string($projectsDirectory) || '' === $projectsDirectory || !is_string($registryFile) || '' === $registryFile) {
-            $output->writeln('<error>config/yaup.yaml projects_directory and registry_file must be non-empty strings.</error>');
+        if (!is_string($projectsDirectory) || '' === $projectsDirectory) {
+            $output->writeln('<error>config/yaup.yaml projects_directory must be a non-empty string.</error>');
             return Command::FAILURE;
         }
         $project = realpath($projectArgument) ?: $projectArgument;
-        $registeredProjects = $this->registeredProjectPaths($loader, $this->root . '/' . $registryFile);
+        try {
+            $registeredProjects = array_map(
+                fn(string $path): string => $this->normalizePath(realpath($path) ?: $path),
+                array_column((new Registry($loader))->registeredPaths($this->root), 'path'),
+            );
+        } catch (\RuntimeException $exception) {
+            $output->writeln('<error>' . $exception->getMessage() . '</error>');
+
+            return Command::FAILURE;
+        }
         if (!in_array($this->normalizePath($project), $registeredProjects, true)) {
             $output->writeln(sprintf(
                 '<error>Project must be a registered checkout in %s so humans can inspect changes before Git operations.</error>',
@@ -78,27 +87,6 @@ final class AgentCommand extends Command
         $process = new Process($command, $project, null, null, null);
         $process->setTty(Process::isTtySupported());
         return $process->run(static fn(string $type, string $data) => $output->write($data));
-    }
-
-    /** @return list<string> */
-    private function registeredProjectPaths(ConfigLoader $loader, string $registryPath): array
-    {
-        $registry = $loader->load($registryPath);
-        $repositories = $registry['repositories'] ?? [];
-        if (!is_array($repositories)) {
-            return [];
-        }
-
-        $paths = [];
-        foreach ($repositories as $repository) {
-            if (!is_array($repository) || !isset($repository['path']) || !is_string($repository['path'])) {
-                continue;
-            }
-
-            $paths[] = $this->normalizePath(realpath($repository['path']) ?: $repository['path']);
-        }
-
-        return array_values(array_unique($paths));
     }
 
     private function normalizePath(string $path): string

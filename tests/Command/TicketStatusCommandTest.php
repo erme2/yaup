@@ -87,6 +87,34 @@ final class TicketStatusCommandTest extends TestCase
         self::assertStringNotContainsString('yaup', $display);
     }
 
+    public function testCanFilterNumericProjectNames(): void
+    {
+        $path = $this->temporaryDirectory . '/config/repositories.yaml';
+        $contents = (string) file_get_contents($path);
+        file_put_contents($path, str_replace('name: example', "name: '123'", $contents));
+
+        $tester = new CommandTester(new TicketStatusCommand($this->temporaryDirectory));
+        $status = $tester->execute(['ticket' => '20', 'project' => ['123']]);
+
+        self::assertSame(Command::SUCCESS, $status);
+        self::assertStringContainsString('123', $tester->getDisplay());
+        self::assertStringContainsString('feature/20-cross-repo-status', $tester->getDisplay());
+        self::assertStringNotContainsString('yaup', $tester->getDisplay());
+    }
+
+    public function testDuplicateNamesUseTheLastRegistration(): void
+    {
+        file_put_contents(
+            $this->temporaryDirectory . '/config/repositories.yaml',
+            "  - name: example\n    path: {$this->temporaryDirectory}/repos/missing-parent/missing\n    remote: git@example.com:last.git\n",
+            FILE_APPEND,
+        );
+        $tester = new CommandTester(new TicketStatusCommand($this->temporaryDirectory));
+        self::assertSame(Command::SUCCESS, $tester->execute(['ticket' => '20', 'project' => ['example']]));
+        self::assertStringContainsString('missing', $tester->getDisplay());
+        self::assertStringNotContainsString('feature/20-cross-repo-status', $tester->getDisplay());
+    }
+
     public function testUnknownProjectFailsClearly(): void
     {
         $tester = new CommandTester(new TicketStatusCommand($this->temporaryDirectory));
@@ -94,6 +122,17 @@ final class TicketStatusCommandTest extends TestCase
 
         self::assertSame(Command::FAILURE, $status);
         self::assertStringContainsString('Unknown registered project: nope', $tester->getDisplay());
+    }
+
+    public function testMalformedRepositoryFailsClearly(): void
+    {
+        file_put_contents($this->temporaryDirectory . '/config/repositories.yaml', "repositories:\n  - name: example\n");
+
+        $tester = new CommandTester(new TicketStatusCommand($this->temporaryDirectory));
+        $status = $tester->execute(['ticket' => '20']);
+
+        self::assertSame(Command::FAILURE, $status);
+        self::assertStringContainsString('repositories[0] name and path must be non-empty strings.', $tester->getDisplay());
     }
 
     /** @param list<string> $arguments */

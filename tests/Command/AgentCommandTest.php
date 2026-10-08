@@ -98,6 +98,40 @@ final class AgentCommandTest extends TestCase
         ]);
     }
 
+    public function testBothPathsWithTheSameNamePassTheGuard(): void
+    {
+        mkdir($this->temporaryDirectory . '/repos/second');
+        file_put_contents(
+            $this->temporaryDirectory . '/config/repositories.yaml',
+            "  - name: example\n    path: {$this->temporaryDirectory}/repos/second\n    remote: git@example.com:second.git\n",
+            FILE_APPEND,
+        );
+
+        foreach (['example', 'second'] as $directory) {
+            [$tester, $status] = $this->executeWithFixtureCodex([
+                'agent' => 'codex',
+                'project' => $this->temporaryDirectory . '/repos/' . $directory,
+                'prompt' => 'Plan the task.',
+            ]);
+            self::assertSame(Command::SUCCESS, $status, $tester->getDisplay());
+        }
+    }
+
+    public function testMalformedRepositoryFailsClearly(): void
+    {
+        file_put_contents($this->temporaryDirectory . '/config/repositories.yaml', "repositories:\n  - name: example\n");
+
+        $tester = new CommandTester(new AgentCommand($this->temporaryDirectory));
+        $status = $tester->execute([
+            'agent' => 'codex',
+            'project' => $this->temporaryDirectory . '/repos/example',
+            'prompt' => 'Plan the task.',
+        ]);
+
+        self::assertSame(Command::FAILURE, $status);
+        self::assertStringContainsString('repositories[0] name and path must be non-empty strings.', $tester->getDisplay());
+    }
+
     public function testRegisteredAgentReceivesTheCanonicalPolicyPrompt(): void
     {
         [$tester, $status] = $this->executeWithFixtureCodex([

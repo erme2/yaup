@@ -59,6 +59,34 @@ final class InstructionsSyncCommandTest extends TestCase
         self::assertStringNotContainsString('other', $tester->getDisplay());
     }
 
+    public function testCanSyncNumericProjectNames(): void
+    {
+        $path = $this->temporaryDirectory . '/config/repositories.yaml';
+        $contents = (string) file_get_contents($path);
+        file_put_contents($path, str_replace('name: example', "name: '123'", $contents));
+
+        $tester = new CommandTester(new InstructionsSyncCommand($this->temporaryDirectory));
+        $status = $tester->execute(['project' => ['123']]);
+
+        self::assertSame(Command::SUCCESS, $status);
+        self::assertFileExists($this->temporaryDirectory . '/repos/example/AGENTS.md');
+        self::assertFileDoesNotExist($this->temporaryDirectory . '/repos/other/AGENTS.md');
+        self::assertStringContainsString('registered with Yaup as `123`', (string) file_get_contents($this->temporaryDirectory . '/repos/example/AGENTS.md'));
+    }
+
+    public function testDuplicateNamesUseTheLastRegistration(): void
+    {
+        file_put_contents(
+            $this->temporaryDirectory . '/config/repositories.yaml',
+            "  - name: example\n    path: {$this->temporaryDirectory}/repos/other\n    remote: git@example.com:last.git\n",
+            FILE_APPEND,
+        );
+        $tester = new CommandTester(new InstructionsSyncCommand($this->temporaryDirectory));
+        self::assertSame(Command::SUCCESS, $tester->execute(['project' => ['example']]));
+        self::assertFileDoesNotExist($this->temporaryDirectory . '/repos/example/AGENTS.md');
+        self::assertFileExists($this->temporaryDirectory . '/repos/other/AGENTS.md');
+    }
+
     public function testUnknownSelectedProjectFails(): void
     {
         $tester = new CommandTester(new InstructionsSyncCommand($this->temporaryDirectory));
@@ -131,5 +159,17 @@ final class InstructionsSyncCommandTest extends TestCase
         self::assertSame(Command::FAILURE, $status);
         self::assertStringContainsString('write failed', $tester->getDisplay());
         self::assertStringContainsString('Failed to write one or more Yaup agent bridge files.', $tester->getDisplay());
+    }
+
+    public function testMalformedRepositoryFailsBeforeWriting(): void
+    {
+        file_put_contents($this->temporaryDirectory . '/config/repositories.yaml', "repositories:\n  - name: example\n");
+
+        $tester = new CommandTester(new InstructionsSyncCommand($this->temporaryDirectory));
+        $status = $tester->execute([]);
+
+        self::assertSame(Command::INVALID, $status);
+        self::assertFileDoesNotExist($this->temporaryDirectory . '/repos/example/AGENTS.md');
+        self::assertStringContainsString('repositories[0] name and path must be non-empty strings.', $tester->getDisplay());
     }
 }
