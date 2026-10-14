@@ -117,7 +117,7 @@ final class RuleResolver
         if (is_dir($cursorRules)) {
             $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($cursorRules));
             foreach ($iterator as $file) {
-                if ($file instanceof SplFileInfo && $file->isFile() && 'md' === strtolower($file->getExtension())) {
+                if ($file instanceof SplFileInfo && $file->isFile() && in_array(strtolower($file->getExtension()), ['md', 'mdc'], true)) {
                     $files[] = $file->getRealPath();
                 }
             }

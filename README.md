@@ -44,7 +44,7 @@ $ bin/yaup discover
  [OK] Discovered 1 projects; added 1 registry entries.
 ```
 
-Planning mode requires a readable, non-empty root-level instruction file (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.github/copilot-instructions.md`, or a Markdown rule under `.cursor/rules/`). If none exists, Yaup blocks the session and suggests `bin/yaup instructions:sync`; nested instructions alone do not count. With that prerequisite met, planning launches the adapter with Yaup's resolved rules and native instruction file list, then requires the agent to leave the checkout unchanged:
+Planning mode requires a readable, non-empty root-level instruction file (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.github/copilot-instructions.md`, or a Markdown or MDC rule under `.cursor/rules/`). If none exists, Yaup blocks the session. Add content to an existing instruction file; if `AGENTS.md` is missing, `bin/yaup instructions:sync` can create the managed baseline while preserving project-owned files. Nested instructions alone do not count. With that prerequisite met, planning launches the adapter with Yaup's resolved rules and native instruction file list, then requires the agent to leave the checkout unchanged:
 
 ```sh
 $ bin/yaup agent codex repos/example "Add a health-check endpoint"

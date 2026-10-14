@@ -112,6 +112,8 @@ final class AgentCommandTest extends TestCase
 
         self::assertSame(Command::FAILURE, $status);
         self::assertStringContainsString('No usable recognized repository-root agent instructions were found.', $tester->getDisplay());
+        self::assertStringContainsString('Add readable, non-empty instructions to any existing root instruction file.', $tester->getDisplay());
+        self::assertStringContainsString('syncing preserves existing project-owned files', $tester->getDisplay());
         self::assertStringContainsString('bin/yaup instructions:sync', $tester->getDisplay());
     }
 
@@ -163,6 +165,8 @@ final class AgentCommandTest extends TestCase
 
         self::assertSame(Command::FAILURE, $status);
         self::assertStringContainsString('No usable recognized repository-root agent instructions were found.', $tester->getDisplay());
+        self::assertStringContainsString('Add readable, non-empty instructions to any existing root instruction file.', $tester->getDisplay());
+        self::assertStringContainsString('syncing preserves existing project-owned files', $tester->getDisplay());
     }
 
     public function testRootCopilotInstructionsSatisfyTheGuard(): void
@@ -178,6 +182,23 @@ final class AgentCommandTest extends TestCase
         ]);
 
         self::assertSame(Command::SUCCESS, $status, $tester->getDisplay());
+    }
+
+    public function testRootCursorMdcInstructionsSatisfyTheGuardAndAreDiscovered(): void
+    {
+        unlink($this->temporaryDirectory . '/repos/example/AGENTS.md');
+        mkdir($this->temporaryDirectory . '/repos/example/.cursor/rules', 0o777, true);
+        $instructions = $this->temporaryDirectory . '/repos/example/.cursor/rules/project.mdc';
+        file_put_contents($instructions, "---\nalwaysApply: true\n---\n# Project instructions\n");
+
+        [$tester, $status] = $this->executeWithFixtureCodex([
+            'agent' => 'codex',
+            'project' => $this->temporaryDirectory . '/repos/example',
+            'prompt' => 'Plan the task.',
+        ]);
+
+        self::assertSame(Command::SUCCESS, $status, $tester->getDisplay());
+        self::assertStringContainsString($instructions, $tester->getDisplay());
     }
 
     public function testBothPathsWithTheSameNamePassTheGuard(): void

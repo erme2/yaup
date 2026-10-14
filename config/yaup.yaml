@@ -11,6 +11,7 @@ native_instructions:
   - GEMINI.md
   - .github/copilot-instructions.md
   - .cursor/rules/**/*.md
+  - .cursor/rules/**/*.mdc
   - .cursorrules
 mandatory_validation_categories:
   - focused-tests

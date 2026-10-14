@@ -41,4 +41,4 @@ rules:
     summary: Never generate or modify native project instruction files unless explicitly requested.
   - id: instructions.root-required
     level: mandatory
-    summary: Require a readable, non-empty recognized repository-root agent instruction file before starting planning or execution; if none exists, stop and direct the user to instructions:sync.
+    summary: Require a readable, non-empty recognized repository-root agent instruction file before starting planning or execution; if none qualifies, stop with guidance to populate existing instructions or sync a missing managed AGENTS.md.
