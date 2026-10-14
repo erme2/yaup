@@ -20,7 +20,7 @@ bin/yaup list
 ## Workflow
 
 1. `bin/yaup discover` discovers direct children of `repos/` and registers projects with an origin remote.
-2. `bin/yaup instructions:sync` creates or refreshes Yaup-managed `AGENTS.md` bridge files in registered projects.
+2. `bin/yaup instructions:sync` creates or refreshes Yaup-managed `AGENTS.md` bridge files in registered projects. Agent sessions require a recognized root instruction file; if one is missing, the session stops and points to this command.
 3. `bin/yaup rules:resolve repos/example` shows the effective structured rules and protected native instruction files.
 4. `bin/yaup agent codex repos/example "task"` launches mechanically read-only planning.
 5. A human reviews, approves, and commits the saved plan.
@@ -44,7 +44,7 @@ $ bin/yaup discover
  [OK] Discovered 1 projects; added 1 registry entries.
 ```
 
-Planning mode launches the adapter with Yaup's resolved rules and native instruction file list, then requires the agent to leave the checkout unchanged:
+Planning mode requires a readable, non-empty root-level instruction file (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.github/copilot-instructions.md`, or a Markdown rule under `.cursor/rules/`). If none exists, Yaup blocks the session and suggests `bin/yaup instructions:sync`; nested instructions alone do not count. With that prerequisite met, planning launches the adapter with Yaup's resolved rules and native instruction file list, then requires the agent to leave the checkout unchanged:
 
 ```sh
 $ bin/yaup agent codex repos/example "Add a health-check endpoint"

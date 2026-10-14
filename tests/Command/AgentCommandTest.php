@@ -26,6 +26,7 @@ final class AgentCommandTest extends TestCase
         mkdir($this->temporaryDirectory . '/policies');
         mkdir($this->temporaryDirectory . '/repos');
         mkdir($this->temporaryDirectory . '/repos/example');
+        file_put_contents($this->temporaryDirectory . '/repos/example/AGENTS.md', '# Project instructions');
         file_put_contents($this->temporaryDirectory . '/config/yaup.yaml', "projects_directory: repos\nregistry_file: config/repositories.yaml\n");
         file_put_contents(
             $this->temporaryDirectory . '/config/repositories.yaml',
@@ -98,9 +99,91 @@ final class AgentCommandTest extends TestCase
         ]);
     }
 
+    public function testMissingRootInstructionsBlockPlanningAndSuggestSync(): void
+    {
+        unlink($this->temporaryDirectory . '/repos/example/AGENTS.md');
+
+        $tester = new CommandTester(new AgentCommand($this->temporaryDirectory));
+        $status = $tester->execute([
+            'agent' => 'codex',
+            'project' => $this->temporaryDirectory . '/repos/example',
+            'prompt' => 'Plan the task.',
+        ]);
+
+        self::assertSame(Command::FAILURE, $status);
+        self::assertStringContainsString('No usable recognized repository-root agent instructions were found.', $tester->getDisplay());
+        self::assertStringContainsString('bin/yaup instructions:sync', $tester->getDisplay());
+    }
+
+    public function testMissingRootInstructionsBlockExecutionBeforePlanVerification(): void
+    {
+        unlink($this->temporaryDirectory . '/repos/example/AGENTS.md');
+
+        $tester = new CommandTester(new AgentCommand($this->temporaryDirectory));
+        $status = $tester->execute([
+            'agent' => 'codex',
+            'project' => $this->temporaryDirectory . '/repos/example',
+            'prompt' => 'Execute the approved plan.',
+            '--execute' => true,
+            '--plan' => $this->temporaryDirectory . '/repos/example/plans/task.yaml',
+        ]);
+
+        self::assertSame(Command::FAILURE, $status);
+        self::assertStringContainsString('No usable recognized repository-root agent instructions were found.', $tester->getDisplay());
+        self::assertStringNotContainsString('plan', strtolower($tester->getDisplay()));
+    }
+
+    public function testNestedInstructionsDoNotSatisfyRootRequirement(): void
+    {
+        unlink($this->temporaryDirectory . '/repos/example/AGENTS.md');
+        mkdir($this->temporaryDirectory . '/repos/example/src');
+        file_put_contents($this->temporaryDirectory . '/repos/example/src/AGENTS.md', '# Nested instructions');
+
+        $tester = new CommandTester(new AgentCommand($this->temporaryDirectory));
+        $status = $tester->execute([
+            'agent' => 'codex',
+            'project' => $this->temporaryDirectory . '/repos/example',
+            'prompt' => 'Plan the task.',
+        ]);
+
+        self::assertSame(Command::FAILURE, $status);
+        self::assertStringContainsString('No usable recognized repository-root agent instructions were found.', $tester->getDisplay());
+    }
+
+    public function testEmptyRootInstructionFileDoesNotSatisfyRequirement(): void
+    {
+        file_put_contents($this->temporaryDirectory . '/repos/example/AGENTS.md', " \n\t");
+
+        $tester = new CommandTester(new AgentCommand($this->temporaryDirectory));
+        $status = $tester->execute([
+            'agent' => 'codex',
+            'project' => $this->temporaryDirectory . '/repos/example',
+            'prompt' => 'Plan the task.',
+        ]);
+
+        self::assertSame(Command::FAILURE, $status);
+        self::assertStringContainsString('No usable recognized repository-root agent instructions were found.', $tester->getDisplay());
+    }
+
+    public function testRootCopilotInstructionsSatisfyTheGuard(): void
+    {
+        unlink($this->temporaryDirectory . '/repos/example/AGENTS.md');
+        mkdir($this->temporaryDirectory . '/repos/example/.github');
+        file_put_contents($this->temporaryDirectory . '/repos/example/.github/copilot-instructions.md', '# Copilot instructions');
+
+        [$tester, $status] = $this->executeWithFixtureCodex([
+            'agent' => 'codex',
+            'project' => $this->temporaryDirectory . '/repos/example',
+            'prompt' => 'Plan the task.',
+        ]);
+
+        self::assertSame(Command::SUCCESS, $status, $tester->getDisplay());
+    }
+
     public function testBothPathsWithTheSameNamePassTheGuard(): void
     {
         mkdir($this->temporaryDirectory . '/repos/second');
+        file_put_contents($this->temporaryDirectory . '/repos/second/AGENTS.md', '# Second project instructions');
         file_put_contents(
             $this->temporaryDirectory . '/config/repositories.yaml',
             "  - name: example\n    path: {$this->temporaryDirectory}/repos/second\n    remote: git@example.com:second.git\n",

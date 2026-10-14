@@ -63,6 +63,22 @@ final class RuleResolver
         return new ResolvedRules(array_values($rules), $nativeFiles, []);
     }
 
+    /** @return list<string> */
+    public function rootInstructionFiles(string $project): array
+    {
+        return array_values(array_filter(
+            $this->nativeFiles($project, $project),
+            static function (string $file): bool {
+                if (!is_readable($file)) {
+                    return false;
+                }
+                $contents = file_get_contents($file);
+
+                return is_string($contents) && '' !== trim($contents);
+            },
+        ));
+    }
+
     /**
      * @param array<mixed> $rule
      * @param array<mixed> $override

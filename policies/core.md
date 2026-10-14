@@ -6,6 +6,8 @@ Yaup gives every supported coding agent the same minimum operating contract.
 
 Inspect in read-only mode. Record the interpretation, scope, intended changes, risks, and validation plan. A human must approve that saved plan in Git before implementation. Material scope changes invalidate approval and require a fresh human approval commit; Yaup verifies the approved plan file is committed and unchanged, but materiality is currently a human review decision.
 
+Before starting either planning or execution, Yaup requires at least one readable, non-empty recognized instruction file that applies from the repository root: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.github/copilot-instructions.md`, or a Markdown rule under `.cursor/rules/`. Nested instructions for individual subdirectories do not satisfy this repository-wide requirement. If none exists, Yaup stops and suggests `bin/yaup instructions:sync`, which creates a managed `AGENTS.md` while preserving project-owned instruction files.
+
 ## Engineering judgment
 
 Follow established project conventions. Write code a human maintainer can understand, debug, and change without reverse-engineering cleverness: prefer clear names, small coherent units, explicit control flow, local patterns, and necessary tests over terse or magical solutions. Stop when conventions conflict or are unclear. Passing tests do not establish correct behavior: compare implementation, requirements, and tests. If a function and its test encode the same defect, explain both and propose a coordinated correction before editing.
