@@ -25,7 +25,7 @@ final class ExecutionGuardrailRunnerTest extends TestCase
             execution_guardrails:
               test_first:
                 - source_paths:
-                    - src/**/*.php
+                    - ./src/**/*.php
                   test_files:
                     - tests/FeatureTest.php
                   command: php tests/FeatureTest.php
@@ -142,6 +142,80 @@ final class ExecutionGuardrailRunnerTest extends TestCase
 
         self::assertSame([], $guardrails->testFirst);
         self::assertSame(["php -r 'exit(0);'"], $guardrails->requiredValidation);
+    }
+
+    public function testNonEmptyListIsRejectedAsGuardrailsMapping(): void
+    {
+        file_put_contents($this->temporaryDirectory . '/.yaup.yaml', <<<'YAML'
+            execution_guardrails:
+              - required_validation:
+                  - composer test
+            YAML);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('execution_guardrails must be a mapping');
+        (new ExecutionGuardrailRunner(new ConfigLoader()))->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+    }
+
+    public function testUnknownGuardrailKeyIsRejectedInsteadOfDisablingGuardrails(): void
+    {
+        file_put_contents($this->temporaryDirectory . '/.yaup.yaml', "execution_guardrails:\n  test_fist: []\n");
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('execution_guardrails contains unknown keys: test_fist');
+        (new ExecutionGuardrailRunner(new ConfigLoader()))->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+    }
+
+    public function testTimedOutTestCommandCannotBeAcceptedAsRedBaseline(): void
+    {
+        $command = <<<'COMMAND'
+            php -r 'fwrite(STDOUT, "KNOWN_REGRESSION"); flush(); sleep(5);'
+            COMMAND;
+        file_put_contents($this->temporaryDirectory . '/.yaup.yaml', <<<YAML
+            execution_guardrails:
+              test_first:
+                - source_paths:
+                    - ./src/**/*.php
+                  test_files:
+                    - tests/FeatureTest.php
+                  command: >-
+                    {$command}
+                  expected_failure: KNOWN_REGRESSION
+            YAML);
+        file_put_contents($this->temporaryDirectory . '/plan.yaml', <<<YAML
+            scope:
+              files:
+                - src/Feature.php
+            verification_plan:
+              - >-
+                {$command}
+            YAML);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Test-first command did not complete before execution');
+        (new ExecutionGuardrailRunner(new ConfigLoader(), 0.5))->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+    }
+
+    public function testTimedOutRequiredValidationIsReportedAfterExecution(): void
+    {
+        $command = "php -r 'sleep(5);'";
+        file_put_contents($this->temporaryDirectory . '/.yaup.yaml', <<<YAML
+            execution_guardrails:
+              required_validation:
+                - "{$command}"
+            YAML);
+        file_put_contents($this->temporaryDirectory . '/plan.yaml', <<<YAML
+            verification_plan:
+              - "{$command}"
+            YAML);
+
+        $runner = new ExecutionGuardrailRunner(new ConfigLoader(), 0.5);
+        $guardrails = $runner->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+
+        self::assertSame(
+            ["Required validation command failed after execution: {$command}"],
+            $runner->verifyAfter($this->temporaryDirectory, $guardrails),
+        );
     }
 
     private function redTest(): string

@@ -10,7 +10,7 @@ use Yaup\Config\ConfigLoader;
 
 final class ExecutionGuardrailRunner
 {
-    public function __construct(private readonly ConfigLoader $loader) {}
+    public function __construct(private readonly ConfigLoader $loader, private readonly float $commandTimeoutSeconds = 900) {}
 
     public function prepare(string $project, string $planPath): ExecutionGuardrailSet
     {
@@ -21,8 +21,12 @@ final class ExecutionGuardrailRunner
 
         $config = $this->loader->load($configPath);
         $guardrails = $config['execution_guardrails'] ?? [];
-        if (!is_array($guardrails)) {
+        if (!is_array($guardrails) || ([] !== $guardrails && array_is_list($guardrails))) {
             throw new RuntimeException('execution_guardrails must be a mapping.');
+        }
+        $unknownKeys = array_diff(array_keys($guardrails), ['test_first', 'required_validation']);
+        if ([] !== $unknownKeys) {
+            throw new RuntimeException('execution_guardrails contains unknown keys: ' . implode(', ', array_map('strval', $unknownKeys)) . '.');
         }
 
         $testFirst = $guardrails['test_first'] ?? [];
@@ -50,8 +54,8 @@ final class ExecutionGuardrailRunner
             $testFiles = $this->stringList($definition['test_files'] ?? [], "execution_guardrails.test_first[{$index}].test_files");
             $command = $this->requiredString($definition['command'] ?? null, "execution_guardrails.test_first[{$index}].command");
             $expectedFailure = $this->requiredString($definition['expected_failure'] ?? null, "execution_guardrails.test_first[{$index}].expected_failure");
-            foreach ($sourcePaths as $pattern) {
-                $this->assertRelativePath($pattern, "execution_guardrails.test_first[{$index}].source_paths");
+            foreach ($sourcePaths as $patternIndex => $pattern) {
+                $sourcePaths[$patternIndex] = $this->assertRelativePath($pattern, "execution_guardrails.test_first[{$index}].source_paths");
             }
             if ([] === $sourcePaths || [] === $testFiles) {
                 throw new RuntimeException("execution_guardrails.test_first[{$index}] requires source_paths and test_files.");
@@ -83,6 +87,9 @@ final class ExecutionGuardrailRunner
 
         foreach ($applicable as $check) {
             $result = $this->runCommand($project, $check['command']);
+            if (!$result['completed']) {
+                throw new RuntimeException("Test-first command did not complete before execution: {$check['command']}");
+            }
             if ($result['success']) {
                 throw new RuntimeException("Test-first command passed before execution; it must fail on the configured regression marker: {$check['command']}");
             }
@@ -100,7 +107,7 @@ final class ExecutionGuardrailRunner
         $errors = [];
         foreach ($guardrails->testFirst as $check) {
             $result = $this->runCommand($project, $check['command']);
-            if (!$result['success']) {
+            if (!$result['completed'] || !$result['success']) {
                 $errors[] = "Test-first command did not pass after execution: {$check['command']}";
             }
         }
@@ -162,21 +169,23 @@ final class ExecutionGuardrailRunner
         return array_values(array_unique(array_filter($commands, static fn(string $command): bool => '' !== $command)));
     }
 
-    /** @return array{success: bool, output: string} */
+    /** @return array{completed: bool, success: bool, output: string} */
     private function runCommand(string $project, string $command): array
     {
         $process = Process::fromShellCommandline($command, $project);
-        $process->setTimeout(900);
+        $process->setTimeout($this->commandTimeoutSeconds);
         try {
             $process->run();
         } catch (RuntimeException $exception) {
             return [
+                'completed' => false,
                 'success' => false,
                 'output' => $process->getErrorOutput() . $process->getOutput() . $exception->getMessage(),
             ];
         }
 
         return [
+            'completed' => true,
             'success' => $process->isSuccessful(),
             'output' => $process->getErrorOutput() . $process->getOutput(),
         ];
