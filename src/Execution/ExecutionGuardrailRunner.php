@@ -231,6 +231,9 @@ final class ExecutionGuardrailRunner
             if ('..' === $segment) {
                 throw new RuntimeException("{$field} paths cannot escape the project root.");
             }
+            if ('' === $segment || '.' === $segment) {
+                throw new RuntimeException("{$field} paths cannot contain empty or current-directory segments.");
+            }
         }
 
         return $path;

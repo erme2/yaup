@@ -166,7 +166,7 @@ verification_plan:
   - 'composer analyse'
 ```
 
-If a configured test-first guard applies, plans must declare at least one path in `scope.files` (or legacy `changes[].path`) so Yaup can determine whether the guard applies. A passing pre-execution test, a failure without the configured marker, a missing test file, or an omitted plan command blocks execution with an actionable error.
+If a configured test-first guard applies, plans must declare at least one canonical repository-relative path in `scope.files` (or legacy `changes[].path`) so Yaup can determine whether the guard applies. Paths containing internal `.` or empty segments are rejected to prevent aliases from bypassing path matching. A passing pre-execution test, a failure without the configured marker, a missing test file, or an omitted plan command blocks execution with an actionable error.
 
 ## Private repositories
 

@@ -134,6 +134,16 @@ final class ExecutionGuardrailRunnerTest extends TestCase
         (new ExecutionGuardrailRunner(new ConfigLoader()))->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
     }
 
+    public function testPlanPathWithCurrentDirectorySegmentIsRejected(): void
+    {
+        $this->assertNonCanonicalPlanPathRejected('src/./Feature.php');
+    }
+
+    public function testPlanPathWithRepeatedSeparatorIsRejected(): void
+    {
+        $this->assertNonCanonicalPlanPathRejected('src//Feature.php');
+    }
+
     public function testNonMatchingSourceChangeSkipsTestFirstCommand(): void
     {
         file_put_contents($this->temporaryDirectory . '/plan.yaml', "scope:\n  files:\n    - docs/readme.md\nverification_plan:\n  - \"php -r 'exit(0);'\"\n");
@@ -221,5 +231,23 @@ final class ExecutionGuardrailRunnerTest extends TestCase
     private function redTest(): string
     {
         return "<?php fwrite(STDOUT, 'KNOWN_REGRESSION'); exit(1);";
+    }
+
+    private function assertNonCanonicalPlanPathRejected(string $path): void
+    {
+        file_put_contents($this->temporaryDirectory . '/plan.yaml', <<<YAML
+            scope:
+              files:
+                - {$path}
+            verification_plan:
+              - php tests/FeatureTest.php
+            YAML);
+
+        try {
+            (new ExecutionGuardrailRunner(new ConfigLoader()))->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+            self::fail('Expected a noncanonical plan path to be rejected.');
+        } catch (RuntimeException $exception) {
+            self::assertStringContainsString('cannot contain empty or current-directory segments', $exception->getMessage());
+        }
     }
 }
