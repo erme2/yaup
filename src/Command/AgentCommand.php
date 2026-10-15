@@ -14,6 +14,8 @@ use Symfony\Component\Process\Process;
 use Yaup\Agent\AdapterRegistry;
 use Yaup\Agent\AgentPromptBuilder;
 use Yaup\Config\ConfigLoader;
+use Yaup\Execution\ExecutionGuardrailRunner;
+use Yaup\Execution\ExecutionGuardrailSet;
 use Yaup\Plan\PlanVerifier;
 use Yaup\Repository\Registry;
 use Yaup\Rules\RuleResolver;
@@ -75,6 +77,8 @@ final class AgentCommand extends Command
         $agent = (new AdapterRegistry())->get($agentName);
         $resolved = $ruleResolver->resolve($this->root, $project);
         $promptBuilder = new AgentPromptBuilder();
+        $guardrailRunner = new ExecutionGuardrailRunner($loader);
+        $guardrails = new ExecutionGuardrailSet([], []);
         if ($input->getOption('execute')) {
             $plan = $input->getOption('plan');
             if (!is_string($plan) || '' === $plan) {
@@ -86,13 +90,35 @@ final class AgentCommand extends Command
                 $output->writeln('<error>' . implode("\n", $verification->errors) . '</error>');
                 return Command::FAILURE;
             }
+            try {
+                $guardrails = $guardrailRunner->prepare($project, $plan);
+            } catch (\RuntimeException $exception) {
+                $output->writeln('<error>Execution guardrail failed: ' . $exception->getMessage() . '</error>');
+
+                return Command::FAILURE;
+            }
             $command = $agent->executeCommand($project, $promptBuilder->build($promptArgument, $resolved));
         } else {
             $command = $agent->planCommand($project, $promptBuilder->build($promptArgument, $resolved, true));
         }
         $process = new Process($command, $project, null, null, null);
         $process->setTty(Process::isTtySupported());
-        return $process->run(static fn(string $type, string $data) => $output->write($data));
+        $status = $process->run(static fn(string $type, string $data) => $output->write($data));
+        if (!$input->getOption('execute') || Command::SUCCESS !== $status) {
+            return $status;
+        }
+
+        $errors = $guardrailRunner->verifyAfter($project, $guardrails);
+        if ([] !== $errors) {
+            $output->writeln('<error>Execution guardrails failed after the agent finished:</error>');
+            foreach ($errors as $error) {
+                $output->writeln('- ' . $error);
+            }
+
+            return Command::FAILURE;
+        }
+
+        return $status;
     }
 
     private function normalizePath(string $path): string

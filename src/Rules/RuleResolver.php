@@ -47,6 +47,14 @@ final class RuleResolver
                     $rules[$id] = array_merge($rules[$id] ?? ['id' => $id], $override);
                 }
             }
+            $executionGuardrails = $config['execution_guardrails'] ?? [];
+            if (is_array($executionGuardrails) && [] !== $executionGuardrails) {
+                $rules['project.execution-guardrails'] = [
+                    'id' => 'project.execution-guardrails',
+                    'level' => 'project',
+                    'summary' => 'Follow execution_guardrails in the project .yaup.yaml. List affected repository-relative files under scope.files and configured test and validation commands under verification_plan.',
+                ];
+            }
         }
 
         $local = $root . '/.yaup.local.yaml';

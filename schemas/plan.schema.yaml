@@ -10,7 +10,12 @@ properties:
   approval:
     type: object
     required: [approved, approver, approved_at, approval_commit]
-  scope: {type: object}
+  scope:
+    type: object
+    properties:
+      files:
+        type: array
+        items: {type: string, minLength: 1}
   implementation_steps: {type: array}
   verification_plan: {type: array}
   risks: {type: array}
