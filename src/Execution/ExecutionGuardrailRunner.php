@@ -97,6 +97,7 @@ final class ExecutionGuardrailRunner
 
         $sourcePathPatterns = array_values(array_unique($sourcePathPatterns));
         $this->assertNoGuardedSymlinkDirectories($project, $sourcePathPatterns);
+        $sourceHashes = $this->matchingFileHashes($project, $sourcePathPatterns);
         foreach ($applicable as $check) {
             $result = $this->runCommand($project, $check['command']);
             if (!$result['completed']) {
@@ -109,13 +110,14 @@ final class ExecutionGuardrailRunner
                 throw new RuntimeException("Test-first command failed before execution but did not report the configured regression marker `{$check['expected_failure']}`: {$check['command']}");
             }
         }
+        $this->assertNoGuardedSymlinkDirectories($project, $sourcePathPatterns);
 
         return new ExecutionGuardrailSet(
             $applicable,
             $requiredValidation,
             $sourcePathPatterns,
             $files,
-            $this->matchingFileHashes($project, $sourcePathPatterns),
+            $sourceHashes,
             $testFileHashes,
         );
     }
@@ -125,15 +127,6 @@ final class ExecutionGuardrailRunner
     {
         $changedTests = $this->changedTestFiles($project, $guardrails);
         $errors = [...$this->verifyGuardedSourceScope($project, $guardrails), ...$this->testFileIntegrityErrors($changedTests)];
-        foreach ($guardrails->testFirst as $check) {
-            if ([] !== array_intersect($check['test_files'], $changedTests)) {
-                continue;
-            }
-            $result = $this->runCommand($project, $check['command']);
-            if (!$result['completed'] || !$result['success']) {
-                $errors[] = "Test-first command did not pass after execution: {$check['command']}";
-            }
-        }
         foreach ($guardrails->requiredValidation as $command) {
             $result = $this->runCommand($project, $command);
             if (!$result['success']) {
@@ -142,6 +135,20 @@ final class ExecutionGuardrailRunner
         }
 
         $changedTests = $this->changedTestFiles($project, $guardrails);
+        $errors = [...$errors, ...$this->testFileIntegrityErrors($changedTests)];
+        if ([] === $changedTests) {
+            $sourceHashesBeforeTests = $this->matchingFileHashes($project, $guardrails->sourcePathPatterns);
+            foreach ($guardrails->testFirst as $check) {
+                $result = $this->runCommand($project, $check['command']);
+                if (!$result['completed'] || !$result['success']) {
+                    $errors[] = "Test-first command did not pass after execution: {$check['command']}";
+                }
+            }
+            $sourceHashesAfterTests = $this->matchingFileHashes($project, $guardrails->sourcePathPatterns);
+            foreach ($this->changedPaths($sourceHashesBeforeTests, $sourceHashesAfterTests) as $path) {
+                $errors[] = "Guarded source changed during focused test execution: {$path}. Rerun verification after source changes.";
+            }
+        }
 
         return array_values(array_unique([
             ...$errors,
@@ -215,17 +222,51 @@ final class ExecutionGuardrailRunner
     private function couldContainGuardedPath(string $directory, array $patterns): bool
     {
         foreach ($patterns as $pattern) {
-            $literalPrefix = preg_split('/[*?]/', $pattern, 2)[0] ?? '';
-            $literalPrefix = rtrim($literalPrefix, '/');
-            if ('' === $literalPrefix
-                || $directory === $literalPrefix
-                || str_starts_with($literalPrefix, $directory . '/')
-                || str_starts_with($directory, $literalPrefix . '/')) {
+            if ($this->globMayMatchBelowDirectory(explode('/', $pattern), explode('/', $directory))) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    /** @param list<string> $patternSegments
+     *  @param list<string> $directorySegments
+     */
+    private function globMayMatchBelowDirectory(array $patternSegments, array $directorySegments, int $patternIndex = 0, int $directoryIndex = 0): bool
+    {
+        if ($directoryIndex >= count($directorySegments)) {
+            return $patternIndex < count($patternSegments)
+                || ([] !== $patternSegments && '**' === $patternSegments[array_key_last($patternSegments)]);
+        }
+        if ($patternIndex >= count($patternSegments)) {
+            return false;
+        }
+
+        $patternSegment = $patternSegments[$patternIndex];
+        if ('**' === $patternSegment) {
+            return $this->globMayMatchBelowDirectory($patternSegments, $directorySegments, $patternIndex + 1, $directoryIndex)
+                || $this->globMayMatchBelowDirectory($patternSegments, $directorySegments, $patternIndex, $directoryIndex + 1);
+        }
+
+        return $this->matchesAny($directorySegments[$directoryIndex], [$patternSegment])
+            && $this->globMayMatchBelowDirectory($patternSegments, $directorySegments, $patternIndex + 1, $directoryIndex + 1);
+    }
+
+    /** @param array<string, string> $before
+     *  @param array<string, string> $after
+     *  @return list<string>
+     */
+    private function changedPaths(array $before, array $after): array
+    {
+        $changed = [];
+        foreach (array_unique([...array_keys($before), ...array_keys($after)]) as $path) {
+            if (($before[$path] ?? null) !== ($after[$path] ?? null)) {
+                $changed[] = $path;
+            }
+        }
+
+        return $changed;
     }
 
     /** @return list<string> */

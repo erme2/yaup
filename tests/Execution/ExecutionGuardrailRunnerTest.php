@@ -134,6 +134,54 @@ final class ExecutionGuardrailRunnerTest extends TestCase
         );
     }
 
+    public function testRedBaselineCannotAddOutOfScopeSourceBeforeSnapshot(): void
+    {
+        file_put_contents($this->temporaryDirectory . '/.yaup.yaml', <<<'YAML'
+            execution_guardrails:
+              test_first:
+                - source_paths:
+                    - src/**/*.php
+                  test_files:
+                    - tests/FeatureTest.php
+                  command: php tests/FeatureTest.php
+                  expected_failure: KNOWN_REGRESSION
+              required_validation:
+                - php -r 'exit(0);'
+            YAML);
+        file_put_contents($this->temporaryDirectory . '/plan.yaml', <<<'YAML'
+            scope:
+              files:
+                - src/Feature.php
+            verification_plan:
+              - php tests/FeatureTest.php
+              - "php -r 'exit(0);'"
+            YAML);
+        file_put_contents($this->temporaryDirectory . '/tests/FeatureTest.php', <<<'PHP'
+            <?php
+            $project = dirname(__DIR__);
+            $generated = $project . '/src/Unplanned.php';
+            if (!file_exists($project . '/.red-baseline-complete')) {
+                file_put_contents($generated, '<?php return true;');
+                touch($project . '/.red-baseline-complete');
+                fwrite(STDOUT, 'KNOWN_REGRESSION');
+                exit(1);
+            }
+            file_put_contents($generated, '<?php return true;');
+            if (true !== require $project . '/src/Feature.php') {
+                fwrite(STDOUT, 'KNOWN_REGRESSION');
+                exit(1);
+            }
+            PHP);
+        $runner = new ExecutionGuardrailRunner(new ConfigLoader());
+        $guardrails = $runner->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+        file_put_contents($this->temporaryDirectory . '/src/Feature.php', '<?php return true;');
+
+        self::assertContains(
+            'Guarded source changed outside the approved plan scope: src/Unplanned.php. Update and reapprove the plan before execution.',
+            $runner->verifyAfter($this->temporaryDirectory, $guardrails),
+        );
+    }
+
     public function testRequiredValidationCannotReplaceRegressionTestAfterFingerprintCheck(): void
     {
         $command = "php -r 'file_put_contents(\"tests/FeatureTest.php\", \"replaced\");'";
@@ -171,6 +219,62 @@ final class ExecutionGuardrailRunnerTest extends TestCase
         );
     }
 
+    public function testFocusedTestRunsAfterValidationMutatesPlannedSource(): void
+    {
+        $command = "php -r 'file_put_contents(\"src/Feature.php\", \"<?php return false;\");'";
+        file_put_contents($this->temporaryDirectory . '/.yaup.yaml', <<<YAML
+            execution_guardrails:
+              test_first:
+                - source_paths:
+                    - src/**/*.php
+                  test_files:
+                    - tests/FeatureTest.php
+                  command: php tests/FeatureTest.php
+                  expected_failure: KNOWN_REGRESSION
+              required_validation:
+                - >-
+                  {$command}
+            YAML);
+        file_put_contents($this->temporaryDirectory . '/plan.yaml', <<<YAML
+            scope:
+              files:
+                - src/Feature.php
+            verification_plan:
+              - php tests/FeatureTest.php
+              - >-
+                {$command}
+            YAML);
+        $runner = new ExecutionGuardrailRunner(new ConfigLoader());
+        $guardrails = $runner->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+        file_put_contents($this->temporaryDirectory . '/src/Feature.php', '<?php return true;');
+
+        self::assertContains(
+            'Test-first command did not pass after execution: php tests/FeatureTest.php',
+            $runner->verifyAfter($this->temporaryDirectory, $guardrails),
+        );
+    }
+
+    public function testFocusedTestCannotMutateGuardedSourceAfterPassing(): void
+    {
+        file_put_contents($this->temporaryDirectory . '/tests/FeatureTest.php', <<<'PHP'
+            <?php
+            $source = dirname(__DIR__) . '/src/Feature.php';
+            if (false === require $source) {
+                fwrite(STDOUT, 'KNOWN_REGRESSION');
+                exit(1);
+            }
+            file_put_contents($source, '<?php return false;');
+            PHP);
+        $runner = new ExecutionGuardrailRunner(new ConfigLoader());
+        $guardrails = $runner->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+        file_put_contents($this->temporaryDirectory . '/src/Feature.php', '<?php return true;');
+
+        self::assertContains(
+            'Guarded source changed during focused test execution: src/Feature.php. Rerun verification after source changes.',
+            $runner->verifyAfter($this->temporaryDirectory, $guardrails),
+        );
+    }
+
     public function testGuardedSourceRootSymlinkIsRejectedBeforeExecution(): void
     {
         rename($this->temporaryDirectory . '/src', $this->temporaryDirectory . '/implementation');
@@ -190,6 +294,16 @@ final class ExecutionGuardrailRunnerTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('cannot be evaluated through directory symlinks');
         (new ExecutionGuardrailRunner(new ConfigLoader()))->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+    }
+
+    public function testWildcardDirectoryPrefixSymlinkIsRejectedBeforeExecution(): void
+    {
+        $this->assertGuardedDirectorySymlinkRejected('src/Feature*/**', 'Features');
+    }
+
+    public function testSingleCharacterWildcardDirectoryPrefixSymlinkIsRejectedBeforeExecution(): void
+    {
+        $this->assertGuardedDirectorySymlinkRejected('src/Feature?/**', 'FeatureX');
     }
 
     public function testGuardedSymlinkIntroducedDuringExecutionFailsPostCheck(): void
@@ -415,6 +529,29 @@ final class ExecutionGuardrailRunnerTest extends TestCase
             self::fail('Expected a noncanonical plan path to be rejected.');
         } catch (RuntimeException $exception) {
             self::assertStringContainsString('cannot contain empty or current-directory segments', $exception->getMessage());
+        }
+    }
+
+    private function assertGuardedDirectorySymlinkRejected(string $sourcePattern, string $directoryName): void
+    {
+        file_put_contents($this->temporaryDirectory . '/.yaup.yaml', <<<YAML
+            execution_guardrails:
+              test_first:
+                - source_paths:
+                    - {$sourcePattern}
+                  test_files:
+                    - tests/FeatureTest.php
+                  command: php tests/FeatureTest.php
+                  expected_failure: KNOWN_REGRESSION
+            YAML);
+        mkdir($this->temporaryDirectory . '/implementation');
+        symlink($this->temporaryDirectory . '/implementation', $this->temporaryDirectory . '/src/' . $directoryName);
+
+        try {
+            (new ExecutionGuardrailRunner(new ConfigLoader()))->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+            self::fail('Expected the guarded directory symlink to be rejected.');
+        } catch (RuntimeException $exception) {
+            self::assertStringContainsString('cannot be evaluated through directory symlinks', $exception->getMessage());
         }
     }
 }
