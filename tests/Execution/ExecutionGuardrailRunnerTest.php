@@ -101,6 +101,112 @@ final class ExecutionGuardrailRunnerTest extends TestCase
         );
     }
 
+    public function testRequiredValidationCannotMutateGuardedSourceAfterScopeCheck(): void
+    {
+        $command = "php -r 'file_put_contents(\"src/Unplanned.php\", \"changed\");'";
+        file_put_contents($this->temporaryDirectory . '/.yaup.yaml', <<<YAML
+            execution_guardrails:
+              test_first:
+                - source_paths:
+                    - src/**/*.php
+                  test_files:
+                    - tests/FeatureTest.php
+                  command: php tests/FeatureTest.php
+                  expected_failure: KNOWN_REGRESSION
+              required_validation:
+                - >-
+                  {$command}
+            YAML);
+        file_put_contents($this->temporaryDirectory . '/plan.yaml', <<<YAML
+            scope:
+              files:
+                - docs/readme.md
+            verification_plan:
+              - >-
+                {$command}
+            YAML);
+        $runner = new ExecutionGuardrailRunner(new ConfigLoader());
+        $guardrails = $runner->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+
+        self::assertSame(
+            ['Guarded source changed outside the approved plan scope: src/Unplanned.php. Update and reapprove the plan before execution.'],
+            $runner->verifyAfter($this->temporaryDirectory, $guardrails),
+        );
+    }
+
+    public function testRequiredValidationCannotReplaceRegressionTestAfterFingerprintCheck(): void
+    {
+        $command = "php -r 'file_put_contents(\"tests/FeatureTest.php\", \"replaced\");'";
+        file_put_contents($this->temporaryDirectory . '/.yaup.yaml', <<<YAML
+            execution_guardrails:
+              test_first:
+                - source_paths:
+                    - src/**/*.php
+                  test_files:
+                    - tests/FeatureTest.php
+                  command: php tests/FeatureTest.php
+                  expected_failure: KNOWN_REGRESSION
+              required_validation:
+                - >-
+                  {$command}
+            YAML);
+        file_put_contents($this->temporaryDirectory . '/plan.yaml', <<<YAML
+            scope:
+              files:
+                - src/Feature.php
+            verification_plan:
+              - php tests/FeatureTest.php
+              - >-
+                {$command}
+            YAML);
+        $runner = new ExecutionGuardrailRunner(new ConfigLoader());
+        $guardrails = $runner->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+        file_put_contents($this->temporaryDirectory . '/src/Feature.php', '<?php return true;');
+
+        $errors = $runner->verifyAfter($this->temporaryDirectory, $guardrails);
+
+        self::assertContains(
+            'Configured regression test changed or was removed during execution: tests/FeatureTest.php. Reapprove the plan before changing configured tests.',
+            $errors,
+        );
+    }
+
+    public function testGuardedSourceRootSymlinkIsRejectedBeforeExecution(): void
+    {
+        rename($this->temporaryDirectory . '/src', $this->temporaryDirectory . '/implementation');
+        symlink($this->temporaryDirectory . '/implementation', $this->temporaryDirectory . '/src');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('cannot be evaluated through directory symlinks');
+        (new ExecutionGuardrailRunner(new ConfigLoader()))->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+    }
+
+    public function testGuardedNestedSourceSymlinkIsRejectedBeforeExecution(): void
+    {
+        mkdir($this->temporaryDirectory . '/implementation');
+        file_put_contents($this->temporaryDirectory . '/implementation/Feature.php', '<?php return false;');
+        symlink($this->temporaryDirectory . '/implementation', $this->temporaryDirectory . '/src/Linked');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('cannot be evaluated through directory symlinks');
+        (new ExecutionGuardrailRunner(new ConfigLoader()))->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+    }
+
+    public function testGuardedSymlinkIntroducedDuringExecutionFailsPostCheck(): void
+    {
+        mkdir($this->temporaryDirectory . '/implementation');
+        file_put_contents($this->temporaryDirectory . '/implementation/Linked.php', '<?php return true;');
+        $runner = new ExecutionGuardrailRunner(new ConfigLoader());
+        $guardrails = $runner->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+        file_put_contents($this->temporaryDirectory . '/src/Feature.php', '<?php return true;');
+        symlink($this->temporaryDirectory . '/implementation', $this->temporaryDirectory . '/src/Linked');
+
+        self::assertSame(
+            ['Guarded source patterns cannot be verified through directory symlink: src/Linked.'],
+            $runner->verifyAfter($this->temporaryDirectory, $guardrails),
+        );
+    }
+
     public function testMatchingSourceChangeRequiresTestFileBeforeExecution(): void
     {
         unlink($this->temporaryDirectory . '/tests/FeatureTest.php');

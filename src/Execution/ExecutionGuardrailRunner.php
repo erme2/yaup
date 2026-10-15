@@ -95,6 +95,8 @@ final class ExecutionGuardrailRunner
             }
         }
 
+        $sourcePathPatterns = array_values(array_unique($sourcePathPatterns));
+        $this->assertNoGuardedSymlinkDirectories($project, $sourcePathPatterns);
         foreach ($applicable as $check) {
             $result = $this->runCommand($project, $check['command']);
             if (!$result['completed']) {
@@ -107,8 +109,6 @@ final class ExecutionGuardrailRunner
                 throw new RuntimeException("Test-first command failed before execution but did not report the configured regression marker `{$check['expected_failure']}`: {$check['command']}");
             }
         }
-
-        $sourcePathPatterns = array_values(array_unique($sourcePathPatterns));
 
         return new ExecutionGuardrailSet(
             $applicable,
@@ -123,17 +123,10 @@ final class ExecutionGuardrailRunner
     /** @return list<string> */
     public function verifyAfter(string $project, ExecutionGuardrailSet $guardrails): array
     {
-        $errors = $this->verifyGuardedSourceScope($project, $guardrails);
+        $changedTests = $this->changedTestFiles($project, $guardrails);
+        $errors = [...$this->verifyGuardedSourceScope($project, $guardrails), ...$this->testFileIntegrityErrors($changedTests)];
         foreach ($guardrails->testFirst as $check) {
-            $changedTests = array_values(array_filter(
-                $check['test_files'],
-                fn(string $testFile): bool => !isset($guardrails->testFileHashes[$testFile])
-                    || !is_file($project . '/' . $testFile)
-                    || $this->fileHash($project . '/' . $testFile, "Configured test file is unreadable: {$testFile}") !== $guardrails->testFileHashes[$testFile],
-            ));
-            if ([] !== $changedTests) {
-                $errors[] = 'Configured regression test changed or was removed during execution: ' . implode(', ', $changedTests) . '. Reapprove the plan before changing configured tests.';
-
+            if ([] !== array_intersect($check['test_files'], $changedTests)) {
                 continue;
             }
             $result = $this->runCommand($project, $check['command']);
@@ -148,7 +141,13 @@ final class ExecutionGuardrailRunner
             }
         }
 
-        return $errors;
+        $changedTests = $this->changedTestFiles($project, $guardrails);
+
+        return array_values(array_unique([
+            ...$errors,
+            ...$this->verifyGuardedSourceScope($project, $guardrails),
+            ...$this->testFileIntegrityErrors($changedTests),
+        ]));
     }
 
     /** @return list<string> */
@@ -158,9 +157,12 @@ final class ExecutionGuardrailRunner
             return [];
         }
 
+        $errors = [];
+        foreach ($this->guardedSymlinkDirectories($project, $guardrails->sourcePathPatterns) as $symlink) {
+            $errors[] = "Guarded source patterns cannot be verified through directory symlink: {$symlink}.";
+        }
         $currentHashes = $this->matchingFileHashes($project, $guardrails->sourcePathPatterns);
         $paths = array_unique([...array_keys($guardrails->sourceHashes), ...array_keys($currentHashes)]);
-        $errors = [];
         foreach ($paths as $path) {
             if (($guardrails->sourceHashes[$path] ?? null) === ($currentHashes[$path] ?? null)
                 || in_array($path, $guardrails->plannedFiles, true)) {
@@ -170,6 +172,92 @@ final class ExecutionGuardrailRunner
         }
 
         return $errors;
+    }
+
+    /** @param list<string> $patterns */
+    private function assertNoGuardedSymlinkDirectories(string $project, array $patterns): void
+    {
+        $symlinks = $this->guardedSymlinkDirectories($project, $patterns);
+        if ([] !== $symlinks) {
+            throw new RuntimeException('Guarded source patterns cannot be evaluated through directory symlinks: ' . implode(', ', $symlinks) . '. Replace the symlink with a directory or adjust source_paths.');
+        }
+    }
+
+    /** @param list<string> $patterns
+     *  @return list<string>
+     */
+    private function guardedSymlinkDirectories(string $project, array $patterns): array
+    {
+        if ([] === $patterns) {
+            return [];
+        }
+
+        $directory = new RecursiveDirectoryIterator($project, FilesystemIterator::SKIP_DOTS);
+        $filtered = new RecursiveCallbackFilterIterator($directory, static function (\SplFileInfo $file): bool {
+            return !($file->isDir() && '.git' === $file->getFilename());
+        });
+        $iterator = new RecursiveIteratorIterator($filtered);
+        $symlinks = [];
+        foreach ($iterator as $file) {
+            if (!$file instanceof \SplFileInfo || !$file->isLink() || !$file->isDir()) {
+                continue;
+            }
+            $relative = str_replace('\\', '/', substr($file->getPathname(), strlen($project) + 1));
+            if ($this->couldContainGuardedPath($relative, $patterns)) {
+                $symlinks[] = $relative;
+            }
+        }
+
+        return array_values(array_unique($symlinks));
+    }
+
+    /** @param list<string> $patterns */
+    private function couldContainGuardedPath(string $directory, array $patterns): bool
+    {
+        foreach ($patterns as $pattern) {
+            $literalPrefix = preg_split('/[*?]/', $pattern, 2)[0] ?? '';
+            $literalPrefix = rtrim($literalPrefix, '/');
+            if ('' === $literalPrefix
+                || $directory === $literalPrefix
+                || str_starts_with($literalPrefix, $directory . '/')
+                || str_starts_with($directory, $literalPrefix . '/')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** @return list<string> */
+    private function changedTestFiles(string $project, ExecutionGuardrailSet $guardrails): array
+    {
+        $changed = [];
+        foreach ($guardrails->testFileHashes as $testFile => $expectedHash) {
+            $path = $project . '/' . $testFile;
+            if (!is_file($path) || !is_readable($path)) {
+                $changed[] = $testFile;
+
+                continue;
+            }
+            $actualHash = hash_file('sha256', $path);
+            if (false === $actualHash || $expectedHash !== $actualHash) {
+                $changed[] = $testFile;
+            }
+        }
+
+        return $changed;
+    }
+
+    /** @param list<string> $changedTests
+     *  @return list<string>
+     */
+    private function testFileIntegrityErrors(array $changedTests): array
+    {
+        if ([] === $changedTests) {
+            return [];
+        }
+
+        return ['Configured regression test changed or was removed during execution: ' . implode(', ', $changedTests) . '. Reapprove the plan before changing configured tests.'];
     }
 
     /** @param list<string> $patterns
