@@ -1,0 +1,151 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Yaup\Tests\Execution;
+
+use PHPUnit\Framework\TestCase;
+use RuntimeException;
+use Yaup\Config\ConfigLoader;
+use Yaup\Execution\ExecutionGuardrailRunner;
+use Yaup\Tests\Support\TemporaryDirectory;
+
+final class ExecutionGuardrailRunnerTest extends TestCase
+{
+    use TemporaryDirectory;
+
+    protected function setUp(): void
+    {
+        $this->setUpTemporaryDirectory();
+        mkdir($this->temporaryDirectory . '/src');
+        mkdir($this->temporaryDirectory . '/tests');
+        file_put_contents($this->temporaryDirectory . '/src/Feature.php', '<?php');
+        file_put_contents($this->temporaryDirectory . '/tests/FeatureTest.php', $this->redTest());
+        file_put_contents($this->temporaryDirectory . '/.yaup.yaml', <<<'YAML'
+            execution_guardrails:
+              test_first:
+                - source_paths:
+                    - src/**/*.php
+                  test_files:
+                    - tests/FeatureTest.php
+                  command: php tests/FeatureTest.php
+                  expected_failure: KNOWN_REGRESSION
+              required_validation:
+                - php -r 'exit(0);'
+            YAML);
+        file_put_contents($this->temporaryDirectory . '/plan.yaml', <<<'YAML'
+            scope:
+              files:
+                - src/Feature.php
+            verification_plan:
+              - php tests/FeatureTest.php
+              - "php -r 'exit(0);'"
+            YAML);
+    }
+
+    protected function tearDown(): void
+    {
+        $this->tearDownTemporaryDirectory();
+    }
+
+    public function testRedRegressionCommandMustFailBeforeExecutionAndPassAfter(): void
+    {
+        $runner = new ExecutionGuardrailRunner(new ConfigLoader());
+        $guardrails = $runner->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+        file_put_contents($this->temporaryDirectory . '/tests/FeatureTest.php', '<?php exit(0);');
+
+        self::assertCount(1, $guardrails->testFirst);
+        self::assertSame([], $runner->verifyAfter($this->temporaryDirectory, $guardrails));
+    }
+
+    public function testRedRegressionCommandMustPassAfterExecution(): void
+    {
+        $runner = new ExecutionGuardrailRunner(new ConfigLoader());
+        $guardrails = $runner->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+
+        self::assertSame(
+            ['Test-first command did not pass after execution: php tests/FeatureTest.php'],
+            $runner->verifyAfter($this->temporaryDirectory, $guardrails),
+        );
+    }
+
+    public function testRequiredValidationMustPassAfterExecution(): void
+    {
+        file_put_contents(
+            $this->temporaryDirectory . '/.yaup.yaml',
+            str_replace("php -r 'exit(0);'", "php -r 'exit(1);'", (string) file_get_contents($this->temporaryDirectory . '/.yaup.yaml')),
+        );
+        file_put_contents(
+            $this->temporaryDirectory . '/plan.yaml',
+            str_replace("php -r 'exit(0);'", "php -r 'exit(1);'", (string) file_get_contents($this->temporaryDirectory . '/plan.yaml')),
+        );
+        $runner = new ExecutionGuardrailRunner(new ConfigLoader());
+        $guardrails = $runner->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+        file_put_contents($this->temporaryDirectory . '/tests/FeatureTest.php', '<?php exit(0);');
+
+        self::assertSame(
+            ["Required validation command failed after execution: php -r 'exit(1);'"],
+            $runner->verifyAfter($this->temporaryDirectory, $guardrails),
+        );
+    }
+
+    public function testMatchingSourceChangeRequiresTestFileBeforeExecution(): void
+    {
+        unlink($this->temporaryDirectory . '/tests/FeatureTest.php');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Required test file must exist');
+        (new ExecutionGuardrailRunner(new ConfigLoader()))->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+    }
+
+    public function testGreenBaselineBlocksExecution(): void
+    {
+        file_put_contents($this->temporaryDirectory . '/tests/FeatureTest.php', '<?php exit(0);');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('passed before execution');
+        (new ExecutionGuardrailRunner(new ConfigLoader()))->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+    }
+
+    public function testFailureWithoutExpectedMarkerBlocksExecution(): void
+    {
+        file_put_contents($this->temporaryDirectory . '/tests/FeatureTest.php', "<?php fwrite(STDOUT, 'OTHER_FAILURE'); exit(1);");
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('did not report the configured regression marker');
+        (new ExecutionGuardrailRunner(new ConfigLoader()))->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+    }
+
+    public function testRequiredValidationMustBeIncludedInApprovedPlan(): void
+    {
+        file_put_contents($this->temporaryDirectory . '/plan.yaml', "scope:\n  files:\n    - docs/readme.md\nverification_plan: []\n");
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('must list required validation command');
+        (new ExecutionGuardrailRunner(new ConfigLoader()))->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+    }
+
+    public function testTestFirstGuardrailRequiresPlannedPaths(): void
+    {
+        file_put_contents($this->temporaryDirectory . '/plan.yaml', "verification_plan:\n  - php tests/FeatureTest.php\n");
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('must list repository-relative paths under scope.files');
+        (new ExecutionGuardrailRunner(new ConfigLoader()))->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+    }
+
+    public function testNonMatchingSourceChangeSkipsTestFirstCommand(): void
+    {
+        file_put_contents($this->temporaryDirectory . '/plan.yaml', "scope:\n  files:\n    - docs/readme.md\nverification_plan:\n  - \"php -r 'exit(0);'\"\n");
+
+        $guardrails = (new ExecutionGuardrailRunner(new ConfigLoader()))->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+
+        self::assertSame([], $guardrails->testFirst);
+        self::assertSame(["php -r 'exit(0);'"], $guardrails->requiredValidation);
+    }
+
+    private function redTest(): string
+    {
+        return "<?php fwrite(STDOUT, 'KNOWN_REGRESSION'); exit(1);";
+    }
+}

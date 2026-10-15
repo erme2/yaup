@@ -37,6 +37,23 @@ final class RuleResolverTest extends TestCase
         self::assertCount(2, $resolved->nativeFiles);
     }
 
+    public function testProjectExecutionGuardrailsAreIncludedInResolvedRules(): void
+    {
+        file_put_contents(
+            $this->temporaryDirectory . '/project/.yaup.yaml',
+            "execution_guardrails:\n  required_validation:\n    - composer test\n"
+        );
+
+        $resolved = (new RuleResolver(new ConfigLoader()))->resolve($this->temporaryDirectory, $this->temporaryDirectory . '/project');
+        $guardrail = array_values(array_filter($resolved->rules, static fn(array $rule): bool => 'project.execution-guardrails' === ($rule['id'] ?? null)));
+
+        self::assertCount(1, $guardrail);
+        $summary = $guardrail[0]['summary'] ?? null;
+        self::assertIsString($summary);
+        self::assertStringContainsString('execution_guardrails', $summary);
+        self::assertStringContainsString('scope.files', $summary);
+    }
+
     public function testMandatoryRuleCannotBeDisabled(): void
     {
         file_put_contents($this->temporaryDirectory . '/project/.yaup.yaml', "rule_overrides:\n  safe:\n    enabled: false\n");

@@ -42,3 +42,6 @@ rules:
   - id: instructions.root-required
     level: mandatory
     summary: Require a readable, non-empty recognized repository-root agent instruction file before starting planning or execution; if none qualifies, stop with guidance to populate existing instructions or sync a missing managed AGENTS.md.
+  - id: workflow.configured-execution-guardrails
+    level: mandatory
+    summary: Follow enabled project execution guardrails; include affected repository-relative files and required commands in the approved plan, and never treat test-file presence alone as proof of a meaningful regression check.

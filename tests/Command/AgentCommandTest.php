@@ -286,17 +286,52 @@ final class AgentCommandTest extends TestCase
         self::assertStringContainsString($project . '/AGENTS.md', $tester->getDisplay());
     }
 
+    public function testExecutionGuardrailBlocksBeforeStartingAgentWhenRedCheckIsAlreadyGreen(): void
+    {
+        $project = $this->temporaryDirectory . '/repos/example';
+        $plan = $this->createApprovedGuardrailPlan($project, '<?php exit(0);');
+
+        [$tester, $status] = $this->executeWithFixtureCodex([
+            'agent' => 'codex',
+            'project' => $project,
+            'prompt' => 'Implement the approved task.',
+            '--execute' => true,
+            '--plan' => $plan,
+        ], "#!/bin/sh\ntouch agent-started\n");
+
+        self::assertSame(Command::FAILURE, $status);
+        self::assertFileDoesNotExist($project . '/agent-started');
+        self::assertStringContainsString('passed before execution', $tester->getDisplay());
+    }
+
+    public function testExecutionGuardrailRunsRedCheckAgainAfterAgentFinishes(): void
+    {
+        $project = $this->temporaryDirectory . '/repos/example';
+        $plan = $this->createApprovedGuardrailPlan($project, "<?php fwrite(STDOUT, 'KNOWN_REGRESSION'); exit(1);");
+
+        [$tester, $status] = $this->executeWithFixtureCodex([
+            'agent' => 'codex',
+            'project' => $project,
+            'prompt' => 'Implement the approved task.',
+            '--execute' => true,
+            '--plan' => $plan,
+        ], "#!/bin/sh\nprintf '%s' '<?php exit(0);' > tests/FeatureTest.php\n");
+
+        self::assertSame(Command::SUCCESS, $status, $tester->getDisplay());
+        self::assertSame('<?php exit(0);', file_get_contents($project . '/tests/FeatureTest.php'));
+    }
+
     /**
      * @param array<string, mixed> $arguments
      *
      * @return array{CommandTester, int}
      */
-    private function executeWithFixtureCodex(array $arguments): array
+    private function executeWithFixtureCodex(array $arguments, ?string $script = null): array
     {
         $executable = $this->temporaryDirectory . '/codex';
         file_put_contents(
             $executable,
-            "#!/bin/sh\nfor argument in \"\$@\"; do\n    prompt=\$argument\ndone\nprintf '%s' \"\$prompt\"\n"
+            $script ?? "#!/bin/sh\nfor argument in \"\$@\"; do\n    prompt=\$argument\ndone\nprintf '%s' \"\$prompt\"\n"
         );
         chmod($executable, 0o755);
         $originalPath = getenv('PATH');
@@ -313,6 +348,45 @@ final class AgentCommandTest extends TestCase
         }
 
         return [$tester, $status];
+    }
+
+    private function createApprovedGuardrailPlan(string $project, string $testContent): string
+    {
+        mkdir($project . '/src');
+        mkdir($project . '/tests');
+        file_put_contents($project . '/src/Feature.php', '<?php');
+        file_put_contents($project . '/tests/FeatureTest.php', $testContent);
+        file_put_contents($project . '/.yaup.yaml', <<<'YAML'
+            execution_guardrails:
+              test_first:
+                - source_paths:
+                    - src/**/*.php
+                  test_files:
+                    - tests/FeatureTest.php
+                  command: php tests/FeatureTest.php
+                  expected_failure: KNOWN_REGRESSION
+            YAML);
+        mkdir($project . '/plans');
+        $plan = $project . '/plans/task.yaml';
+        file_put_contents($plan, <<<'YAML'
+            status: approved
+            approval:
+              approved: true
+              approver: human
+              approved_at: '2026-09-19T10:00:00+01:00'
+            scope:
+              files:
+                - src/Feature.php
+            verification_plan:
+              - php tests/FeatureTest.php
+            YAML);
+        $this->git($project, ['init']);
+        $this->git($project, ['config', 'user.email', 'test@example.com']);
+        $this->git($project, ['config', 'user.name', 'Human']);
+        $this->git($project, ['add', 'plans/task.yaml']);
+        $this->git($project, ['commit', '-m', 'approve plan']);
+
+        return $plan;
     }
 
     /** @param list<string> $arguments */

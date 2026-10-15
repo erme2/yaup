@@ -49,6 +49,9 @@ prompt fragments.
 - Require `--plan` in execution mode.
 - Verify the approved plan with `PlanVerifier` before calling
   `executeCommand()`.
+- Evaluate any configured execution guardrails before calling
+  `executeCommand()`, and verify their test and validation commands after the
+  adapter exits successfully.
 
 Adapters own only the vendor-specific flags:
 

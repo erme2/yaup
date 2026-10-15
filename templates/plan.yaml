@@ -10,6 +10,7 @@ approval:
 scope:
   included: []
   excluded: []
+  files: []
 implementation_steps: []
 verification_plan: []
 risks: []

@@ -134,6 +134,40 @@ A material scope change is a change that would reasonably alter what the approve
 
 When in doubt, treat the change as material, return to planning, and require a fresh approval commit.
 
+## Execution guardrails
+
+Projects can opt in to execution guardrails in `.yaup.yaml`. Test-first rules match repository-relative paths listed under the approved plan's `scope.files`. A matching rule requires each configured test file to exist and contain content, and requires its focused test command to appear exactly in `verification_plan`. Before execution starts, Yaup runs that command and requires it to fail with the configured output marker. After the agent exits successfully, Yaup reruns the command and requires it to pass. This checks for an observed red-to-green result; it does not judge whether the test assertion correctly represents the intended behavior.
+
+`required_validation` commands must also appear exactly in `verification_plan` and are run after the agent exits successfully. Projects without `execution_guardrails` keep the existing execution behavior. Yaup does not control commit structure because Git operations remain human-controlled.
+
+For example, a focused PHPUnit regression test can be required before changes under `src/Checkout/`:
+
+```yaml
+execution_guardrails:
+  test_first:
+    - source_paths:
+        - 'src/Checkout/**'
+      test_files:
+        - tests/Feature/CheckoutTest.php
+      command: 'vendor/bin/phpunit tests/Feature/CheckoutTest.php'
+      expected_failure: 'CheckoutTest::test_requires_available_inventory'
+  required_validation:
+    - 'composer analyse'
+```
+
+The approved plan lists the affected path and exact commands:
+
+```yaml
+scope:
+  files:
+    - src/Checkout/Inventory.php
+verification_plan:
+  - 'vendor/bin/phpunit tests/Feature/CheckoutTest.php'
+  - 'composer analyse'
+```
+
+If a configured test-first guard applies, plans must declare at least one path in `scope.files` (or legacy `changes[].path`) so Yaup can determine whether the guard applies. A passing pre-execution test, a failure without the configured marker, a missing test file, or an omitted plan command blocks execution with an actionable error.
+
 ## Private repositories
 
 Project workflows pin an exact Yaup release and use a read-only GitHub App token to download private artifacts. Configure `YAUP_APP_ID` and `YAUP_APP_PRIVATE_KEY` as repository or organization secrets. Repository identity is configured once in `config/yaup.yaml` so a rename does not require source changes.
