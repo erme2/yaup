@@ -66,8 +66,14 @@ final class AgentCommand extends Command
             ));
             return Command::FAILURE;
         }
+        $ruleResolver = new RuleResolver($loader);
+        if ([] === $ruleResolver->rootInstructionFiles($project)) {
+            $output->writeln('<error>No usable recognized repository-root agent instructions were found. Add readable, non-empty instructions to any existing root instruction file. If AGENTS.md is missing, run `bin/yaup instructions:sync` to create a managed baseline; syncing preserves existing project-owned files.</error>');
+
+            return Command::FAILURE;
+        }
         $agent = (new AdapterRegistry())->get($agentName);
-        $resolved = (new RuleResolver($loader))->resolve($this->root, $project);
+        $resolved = $ruleResolver->resolve($this->root, $project);
         $promptBuilder = new AgentPromptBuilder();
         if ($input->getOption('execute')) {
             $plan = $input->getOption('plan');

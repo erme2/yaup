@@ -63,6 +63,22 @@ final class RuleResolver
         return new ResolvedRules(array_values($rules), $nativeFiles, []);
     }
 
+    /** @return list<string> */
+    public function rootInstructionFiles(string $project): array
+    {
+        return array_values(array_filter(
+            $this->nativeFiles($project, $project),
+            static function (string $file): bool {
+                if (!is_readable($file)) {
+                    return false;
+                }
+                $contents = file_get_contents($file);
+
+                return is_string($contents) && '' !== trim($contents);
+            },
+        ));
+    }
+
     /**
      * @param array<mixed> $rule
      * @param array<mixed> $override
@@ -101,7 +117,7 @@ final class RuleResolver
         if (is_dir($cursorRules)) {
             $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($cursorRules));
             foreach ($iterator as $file) {
-                if ($file instanceof SplFileInfo && $file->isFile() && 'md' === strtolower($file->getExtension())) {
+                if ($file instanceof SplFileInfo && $file->isFile() && in_array(strtolower($file->getExtension()), ['md', 'mdc'], true)) {
                     $files[] = $file->getRealPath();
                 }
             }
