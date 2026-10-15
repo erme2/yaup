@@ -19,7 +19,7 @@ final class ExecutionGuardrailRunnerTest extends TestCase
         $this->setUpTemporaryDirectory();
         mkdir($this->temporaryDirectory . '/src');
         mkdir($this->temporaryDirectory . '/tests');
-        file_put_contents($this->temporaryDirectory . '/src/Feature.php', '<?php');
+        file_put_contents($this->temporaryDirectory . '/src/Feature.php', '<?php return false;');
         file_put_contents($this->temporaryDirectory . '/tests/FeatureTest.php', $this->redTest());
         file_put_contents($this->temporaryDirectory . '/.yaup.yaml', <<<'YAML'
             execution_guardrails:
@@ -52,7 +52,7 @@ final class ExecutionGuardrailRunnerTest extends TestCase
     {
         $runner = new ExecutionGuardrailRunner(new ConfigLoader());
         $guardrails = $runner->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
-        file_put_contents($this->temporaryDirectory . '/tests/FeatureTest.php', '<?php exit(0);');
+        file_put_contents($this->temporaryDirectory . '/src/Feature.php', '<?php return true;');
 
         self::assertCount(1, $guardrails->testFirst);
         self::assertSame([], $runner->verifyAfter($this->temporaryDirectory, $guardrails));
@@ -69,6 +69,18 @@ final class ExecutionGuardrailRunnerTest extends TestCase
         );
     }
 
+    public function testConfiguredRegressionTestCannotBeReplacedAfterPreparation(): void
+    {
+        $runner = new ExecutionGuardrailRunner(new ConfigLoader());
+        $guardrails = $runner->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+        file_put_contents($this->temporaryDirectory . '/tests/FeatureTest.php', '<?php exit(0);');
+
+        self::assertSame(
+            ['Configured regression test changed or was removed during execution: tests/FeatureTest.php. Reapprove the plan before changing configured tests.'],
+            $runner->verifyAfter($this->temporaryDirectory, $guardrails),
+        );
+    }
+
     public function testRequiredValidationMustPassAfterExecution(): void
     {
         file_put_contents(
@@ -81,7 +93,7 @@ final class ExecutionGuardrailRunnerTest extends TestCase
         );
         $runner = new ExecutionGuardrailRunner(new ConfigLoader());
         $guardrails = $runner->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
-        file_put_contents($this->temporaryDirectory . '/tests/FeatureTest.php', '<?php exit(0);');
+        file_put_contents($this->temporaryDirectory . '/src/Feature.php', '<?php return true;');
 
         self::assertSame(
             ["Required validation command failed after execution: php -r 'exit(1);'"],
@@ -152,6 +164,48 @@ final class ExecutionGuardrailRunnerTest extends TestCase
 
         self::assertSame([], $guardrails->testFirst);
         self::assertSame(["php -r 'exit(0);'"], $guardrails->requiredValidation);
+    }
+
+    public function testGuardedSourceChangeOutsidePlanScopeFailsPostCheck(): void
+    {
+        file_put_contents($this->temporaryDirectory . '/plan.yaml', <<<'YAML'
+            scope:
+              files:
+                - docs/readme.md
+            verification_plan:
+              - php tests/FeatureTest.php
+              - "php -r 'exit(0);'"
+            YAML);
+        $runner = new ExecutionGuardrailRunner(new ConfigLoader());
+        $guardrails = $runner->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+        file_put_contents($this->temporaryDirectory . '/src/Feature.php', '<?php return true;');
+
+        self::assertSame(
+            ['Guarded source changed outside the approved plan scope: src/Feature.php. Update and reapprove the plan before execution.'],
+            $runner->verifyAfter($this->temporaryDirectory, $guardrails),
+        );
+    }
+
+    public function testNewAndRenamedGuardedFilesOutsidePlanScopeFailPostCheck(): void
+    {
+        file_put_contents($this->temporaryDirectory . '/plan.yaml', <<<'YAML'
+            scope:
+              files:
+                - docs/readme.md
+            verification_plan:
+              - php tests/FeatureTest.php
+              - "php -r 'exit(0);'"
+            YAML);
+        $runner = new ExecutionGuardrailRunner(new ConfigLoader());
+        $guardrails = $runner->prepare($this->temporaryDirectory, $this->temporaryDirectory . '/plan.yaml');
+        unlink($this->temporaryDirectory . '/src/Feature.php');
+        file_put_contents($this->temporaryDirectory . '/src/NewFeature.php', '<?php return false;');
+
+        $errors = $runner->verifyAfter($this->temporaryDirectory, $guardrails);
+
+        self::assertCount(2, $errors);
+        self::assertContains('Guarded source changed outside the approved plan scope: src/Feature.php. Update and reapprove the plan before execution.', $errors);
+        self::assertContains('Guarded source changed outside the approved plan scope: src/NewFeature.php. Update and reapprove the plan before execution.', $errors);
     }
 
     public function testNonEmptyListIsRejectedAsGuardrailsMapping(): void
@@ -230,7 +284,14 @@ final class ExecutionGuardrailRunnerTest extends TestCase
 
     private function redTest(): string
     {
-        return "<?php fwrite(STDOUT, 'KNOWN_REGRESSION'); exit(1);";
+        return <<<'PHP'
+            <?php
+            $actual = require __DIR__ . '/../src/Feature.php';
+            if (true !== $actual) {
+                fwrite(STDOUT, 'KNOWN_REGRESSION');
+                exit(1);
+            }
+            PHP;
     }
 
     private function assertNonCanonicalPlanPathRejected(string $path): void

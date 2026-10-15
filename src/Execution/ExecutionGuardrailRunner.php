@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Yaup\Execution;
 
+use FilesystemIterator;
+use RecursiveCallbackFilterIterator;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use RuntimeException;
 use Symfony\Component\Process\Process;
 use Yaup\Config\ConfigLoader;
@@ -45,6 +49,8 @@ final class ExecutionGuardrailRunner
             throw new RuntimeException('The approved plan must list repository-relative paths under scope.files before test-first guardrails can be evaluated.');
         }
         $applicable = [];
+        $sourcePathPatterns = [];
+        $testFileHashes = [];
 
         foreach ($testFirst as $index => $definition) {
             if (!is_array($definition)) {
@@ -57,9 +63,13 @@ final class ExecutionGuardrailRunner
             foreach ($sourcePaths as $patternIndex => $pattern) {
                 $sourcePaths[$patternIndex] = $this->assertRelativePath($pattern, "execution_guardrails.test_first[{$index}].source_paths");
             }
+            foreach ($testFiles as $testFileIndex => $testFile) {
+                $testFiles[$testFileIndex] = $this->assertRelativePath($testFile, "execution_guardrails.test_first[{$index}].test_files");
+            }
             if ([] === $sourcePaths || [] === $testFiles) {
                 throw new RuntimeException("execution_guardrails.test_first[{$index}] requires source_paths and test_files.");
             }
+            $sourcePathPatterns = [...$sourcePathPatterns, ...$sourcePaths];
 
             $matchedFiles = array_values(array_filter($files, fn(string $file): bool => $this->matchesAny($file, $sourcePaths)));
             if ([] === $matchedFiles) {
@@ -69,14 +79,14 @@ final class ExecutionGuardrailRunner
                 throw new RuntimeException("The approved plan verification_plan must list the test-first command for {$matchedFiles[0]}: {$command}");
             }
             foreach ($testFiles as $testFile) {
-                $relative = $this->assertRelativePath($testFile, "execution_guardrails.test_first[{$index}].test_files");
-                $path = $project . '/' . $relative;
+                $path = $project . '/' . $testFile;
                 if (!is_file($path) || !is_readable($path) || '' === trim((string) file_get_contents($path))) {
-                    throw new RuntimeException("Required test file must exist, be readable, and contain content before execution: {$relative}");
+                    throw new RuntimeException("Required test file must exist, be readable, and contain content before execution: {$testFile}");
                 }
+                $testFileHashes[$testFile] = $this->fileHash($path, "Required test file is unreadable: {$testFile}");
             }
 
-            $applicable[] = ['command' => $command, 'expected_failure' => $expectedFailure];
+            $applicable[] = ['command' => $command, 'expected_failure' => $expectedFailure, 'test_files' => $testFiles];
         }
 
         foreach ($requiredValidation as $command) {
@@ -98,14 +108,34 @@ final class ExecutionGuardrailRunner
             }
         }
 
-        return new ExecutionGuardrailSet($applicable, $requiredValidation);
+        $sourcePathPatterns = array_values(array_unique($sourcePathPatterns));
+
+        return new ExecutionGuardrailSet(
+            $applicable,
+            $requiredValidation,
+            $sourcePathPatterns,
+            $files,
+            $this->matchingFileHashes($project, $sourcePathPatterns),
+            $testFileHashes,
+        );
     }
 
     /** @return list<string> */
     public function verifyAfter(string $project, ExecutionGuardrailSet $guardrails): array
     {
-        $errors = [];
+        $errors = $this->verifyGuardedSourceScope($project, $guardrails);
         foreach ($guardrails->testFirst as $check) {
+            $changedTests = array_values(array_filter(
+                $check['test_files'],
+                fn(string $testFile): bool => !isset($guardrails->testFileHashes[$testFile])
+                    || !is_file($project . '/' . $testFile)
+                    || $this->fileHash($project . '/' . $testFile, "Configured test file is unreadable: {$testFile}") !== $guardrails->testFileHashes[$testFile],
+            ));
+            if ([] !== $changedTests) {
+                $errors[] = 'Configured regression test changed or was removed during execution: ' . implode(', ', $changedTests) . '. Reapprove the plan before changing configured tests.';
+
+                continue;
+            }
             $result = $this->runCommand($project, $check['command']);
             if (!$result['completed'] || !$result['success']) {
                 $errors[] = "Test-first command did not pass after execution: {$check['command']}";
@@ -119,6 +149,66 @@ final class ExecutionGuardrailRunner
         }
 
         return $errors;
+    }
+
+    /** @return list<string> */
+    private function verifyGuardedSourceScope(string $project, ExecutionGuardrailSet $guardrails): array
+    {
+        if ([] === $guardrails->sourcePathPatterns) {
+            return [];
+        }
+
+        $currentHashes = $this->matchingFileHashes($project, $guardrails->sourcePathPatterns);
+        $paths = array_unique([...array_keys($guardrails->sourceHashes), ...array_keys($currentHashes)]);
+        $errors = [];
+        foreach ($paths as $path) {
+            if (($guardrails->sourceHashes[$path] ?? null) === ($currentHashes[$path] ?? null)
+                || in_array($path, $guardrails->plannedFiles, true)) {
+                continue;
+            }
+            $errors[] = "Guarded source changed outside the approved plan scope: {$path}. Update and reapprove the plan before execution.";
+        }
+
+        return $errors;
+    }
+
+    /** @param list<string> $patterns
+     *  @return array<string, string>
+     */
+    private function matchingFileHashes(string $project, array $patterns): array
+    {
+        if ([] === $patterns) {
+            return [];
+        }
+
+        $directory = new RecursiveDirectoryIterator($project, FilesystemIterator::SKIP_DOTS);
+        $filtered = new RecursiveCallbackFilterIterator($directory, static function (\SplFileInfo $file): bool {
+            return !($file->isDir() && '.git' === $file->getFilename());
+        });
+        $iterator = new RecursiveIteratorIterator($filtered);
+        $hashes = [];
+        foreach ($iterator as $file) {
+            if (!$file instanceof \SplFileInfo || !$file->isFile()) {
+                continue;
+            }
+            $relative = str_replace('\\', '/', substr($file->getPathname(), strlen($project) + 1));
+            if (!$this->matchesAny($relative, $patterns)) {
+                continue;
+            }
+            $hashes[$relative] = $this->fileHash($file->getPathname(), "Guarded source file is unreadable: {$relative}");
+        }
+
+        return $hashes;
+    }
+
+    private function fileHash(string $path, string $error): string
+    {
+        $hash = hash_file('sha256', $path);
+        if (false === $hash) {
+            throw new RuntimeException($error);
+        }
+
+        return $hash;
     }
 
     /** @param array<string, mixed> $plan

@@ -289,7 +289,7 @@ final class AgentCommandTest extends TestCase
     public function testExecutionGuardrailBlocksBeforeStartingAgentWhenRedCheckIsAlreadyGreen(): void
     {
         $project = $this->temporaryDirectory . '/repos/example';
-        $plan = $this->createApprovedGuardrailPlan($project, '<?php exit(0);');
+        $plan = $this->createApprovedGuardrailPlan($project, true);
 
         [$tester, $status] = $this->executeWithFixtureCodex([
             'agent' => 'codex',
@@ -307,7 +307,25 @@ final class AgentCommandTest extends TestCase
     public function testExecutionGuardrailRunsRedCheckAgainAfterAgentFinishes(): void
     {
         $project = $this->temporaryDirectory . '/repos/example';
-        $plan = $this->createApprovedGuardrailPlan($project, "<?php fwrite(STDOUT, 'KNOWN_REGRESSION'); exit(1);");
+        $plan = $this->createApprovedGuardrailPlan($project);
+
+        [$tester, $status] = $this->executeWithFixtureCodex([
+            'agent' => 'codex',
+            'project' => $project,
+            'prompt' => 'Implement the approved task.',
+            '--execute' => true,
+            '--plan' => $plan,
+        ], "#!/bin/sh\nprintf '%s' '<?php return true;' > src/Feature.php\n");
+
+        self::assertSame(Command::SUCCESS, $status, $tester->getDisplay());
+        self::assertSame('<?php return true;', file_get_contents($project . '/src/Feature.php'));
+        self::assertSame($this->guardrailTestContent(), file_get_contents($project . '/tests/FeatureTest.php'));
+    }
+
+    public function testExecutionGuardrailRejectsRegressionTestReplacement(): void
+    {
+        $project = $this->temporaryDirectory . '/repos/example';
+        $plan = $this->createApprovedGuardrailPlan($project);
 
         [$tester, $status] = $this->executeWithFixtureCodex([
             'agent' => 'codex',
@@ -317,8 +335,8 @@ final class AgentCommandTest extends TestCase
             '--plan' => $plan,
         ], "#!/bin/sh\nprintf '%s' '<?php exit(0);' > tests/FeatureTest.php\n");
 
-        self::assertSame(Command::SUCCESS, $status, $tester->getDisplay());
-        self::assertSame('<?php exit(0);', file_get_contents($project . '/tests/FeatureTest.php'));
+        self::assertSame(Command::FAILURE, $status);
+        self::assertStringContainsString('Configured regression test changed or was removed during execution', $tester->getDisplay());
     }
 
     /**
@@ -350,12 +368,12 @@ final class AgentCommandTest extends TestCase
         return [$tester, $status];
     }
 
-    private function createApprovedGuardrailPlan(string $project, string $testContent): string
+    private function createApprovedGuardrailPlan(string $project, bool $initiallyPassing = false): string
     {
         mkdir($project . '/src');
         mkdir($project . '/tests');
-        file_put_contents($project . '/src/Feature.php', '<?php');
-        file_put_contents($project . '/tests/FeatureTest.php', $testContent);
+        file_put_contents($project . '/src/Feature.php', '<?php return ' . ($initiallyPassing ? 'true' : 'false') . ';');
+        file_put_contents($project . '/tests/FeatureTest.php', $this->guardrailTestContent());
         file_put_contents($project . '/.yaup.yaml', <<<'YAML'
             execution_guardrails:
               test_first:
@@ -387,6 +405,18 @@ final class AgentCommandTest extends TestCase
         $this->git($project, ['commit', '-m', 'approve plan']);
 
         return $plan;
+    }
+
+    private function guardrailTestContent(): string
+    {
+        return <<<'PHP'
+            <?php
+            $actual = require __DIR__ . '/../src/Feature.php';
+            if (true !== $actual) {
+                fwrite(STDOUT, 'KNOWN_REGRESSION');
+                exit(1);
+            }
+            PHP;
     }
 
     /** @param list<string> $arguments */
