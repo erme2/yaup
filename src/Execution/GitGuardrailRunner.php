@@ -277,7 +277,7 @@ final class GitGuardrailRunner
     private function matchesAnyBranch(string $branch, array $patterns): bool
     {
         foreach ($patterns as $pattern) {
-            if (fnmatch($pattern, $branch, FNM_PATHNAME)) {
+            if (fnmatch($pattern, $branch)) {
                 return true;
             }
         }
