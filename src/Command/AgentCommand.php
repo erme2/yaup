@@ -16,6 +16,7 @@ use Yaup\Agent\AgentPromptBuilder;
 use Yaup\Config\ConfigLoader;
 use Yaup\Execution\ExecutionGuardrailRunner;
 use Yaup\Execution\ExecutionGuardrailSet;
+use Yaup\Execution\GitGuardrailRunner;
 use Yaup\Plan\PlanVerifier;
 use Yaup\Repository\Registry;
 use Yaup\Rules\RuleResolver;
@@ -68,6 +69,21 @@ final class AgentCommand extends Command
             ));
             return Command::FAILURE;
         }
+        $gitGuardrailRunner = new GitGuardrailRunner($loader);
+        $stage = $input->getOption('execute') ? 'execution' : 'planning';
+        try {
+            $startFindings = $gitGuardrailRunner->inspectTaskStart($project, $stage);
+        } catch (\RuntimeException $exception) {
+            $output->writeln('<error>Git task-start guardrail failed: ' . $exception->getMessage() . '</error>');
+
+            return Command::FAILURE;
+        }
+        $this->writeGitGuardrailFindings($output, $startFindings, "before {$stage}");
+        if ($gitGuardrailRunner->blocks($startFindings)) {
+            $output->writeln('<error>Git task-start guardrail blocked the session. Resolve the listed Git state and retry.</error>');
+
+            return Command::FAILURE;
+        }
         $ruleResolver = new RuleResolver($loader);
         if ([] === $ruleResolver->rootInstructionFiles($project)) {
             $output->writeln('<error>No usable recognized repository-root agent instructions were found. Add readable, non-empty instructions to any existing root instruction file. If AGENTS.md is missing, run `bin/yaup instructions:sync` to create a managed baseline; syncing preserves existing project-owned files.</error>');
@@ -115,10 +131,31 @@ final class AgentCommand extends Command
                 $output->writeln('- ' . $error);
             }
 
+        }
+        try {
+            $reviewFindings = $gitGuardrailRunner->inspectDiff($project);
+        } catch (\RuntimeException $exception) {
+            $output->writeln('<error>Git diff review failed: ' . $exception->getMessage() . '</error>');
+
+            return Command::FAILURE;
+        }
+        $this->writeGitGuardrailFindings($output, $reviewFindings, 'after execution');
+        if ([] !== $errors || $gitGuardrailRunner->blocks($reviewFindings)) {
             return Command::FAILURE;
         }
 
         return $status;
+    }
+
+    /** @param list<\Yaup\Execution\GitGuardrailFinding> $findings */
+    private function writeGitGuardrailFindings(OutputInterface $output, array $findings, string $stage): void
+    {
+        foreach ($findings as $finding) {
+            $output->writeln(sprintf('<comment>Git guardrail %s [%s] %s: %s</comment>', $stage, $finding->action, $finding->id, $finding->message));
+            foreach ($finding->paths as $path) {
+                $output->writeln('  - ' . $path);
+            }
+        }
     }
 
     private function normalizePath(string $path): string

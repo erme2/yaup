@@ -7,6 +7,7 @@ namespace Yaup;
 use Symfony\Component\Console\Application as SymfonyApplication;
 use Yaup\Command\AgentCommand;
 use Yaup\Command\DiscoverCommand;
+use Yaup\Command\GitReviewCommand;
 use Yaup\Command\InstructionsSyncCommand;
 use Yaup\Command\PlanDiffCommand;
 use Yaup\Command\PlanVerifyCommand;
@@ -26,6 +27,7 @@ final class Application extends SymfonyApplication
             new PlanVerifyCommand($root),
             new TicketStatusCommand($root),
             new AgentCommand($root),
+            new GitReviewCommand($root),
             new ValidateCommand(),
             new InstructionsSyncCommand($root),
         ]);

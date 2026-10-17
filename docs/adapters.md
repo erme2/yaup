@@ -44,6 +44,7 @@ prompt fragments.
 `AgentCommand` owns the shared gate:
 
 - Reject unregistered project paths before resolving the adapter.
+- Evaluate configured task-start Git checks before launching planning or execution.
 - Resolve Yaup rules and native instruction file paths once.
 - Append `Do not modify files or external state.` in planning mode.
 - Require `--plan` in execution mode.
@@ -52,6 +53,8 @@ prompt fragments.
 - Evaluate any configured execution guardrails before calling
   `executeCommand()`, and verify their test and validation commands after the
   adapter exits successfully.
+- Run configured diff-review checks after successful execution and report
+  findings before returning control for human review.
 
 Adapters own only the vendor-specific flags:
 

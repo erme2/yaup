@@ -339,6 +339,94 @@ final class AgentCommandTest extends TestCase
         self::assertStringContainsString('Configured regression test changed or was removed during execution', $tester->getDisplay());
     }
 
+    public function testDirtyTreeBlocksPlanningBeforeStartingAgent(): void
+    {
+        $project = $this->temporaryDirectory . '/repos/example';
+        file_put_contents($project . '/.yaup.yaml', <<<'YAML'
+            git_guardrails:
+              task_start:
+                planning:
+                  clean_working_tree: block
+            YAML);
+        $this->initializeGit($project, 'feature/39-test');
+        file_put_contents($project . '/user-work.txt', 'keep this change');
+
+        [$tester, $status] = $this->executeWithFixtureCodex([
+            'agent' => 'codex',
+            'project' => $project,
+            'prompt' => 'Plan the task.',
+        ]);
+
+        self::assertSame(Command::FAILURE, $status);
+        self::assertStringContainsString('working-tree-dirty', $tester->getDisplay());
+        self::assertStringContainsString('user-work.txt', $tester->getDisplay());
+        self::assertStringNotContainsString('Read Yaup rules', $tester->getDisplay());
+        self::assertSame('keep this change', file_get_contents($project . '/user-work.txt'));
+    }
+
+    public function testUnexpectedExecutionBranchBlocksBeforePlanVerification(): void
+    {
+        $project = $this->temporaryDirectory . '/repos/example';
+        file_put_contents($project . '/.yaup.yaml', <<<'YAML'
+            git_guardrails:
+              task_start:
+                execution:
+                  expected_branch:
+                    patterns: ['feature/*']
+                    action: block
+            YAML);
+        $this->initializeGit($project, 'main');
+
+        [$tester, $status] = $this->executeWithFixtureCodex([
+            'agent' => 'codex',
+            'project' => $project,
+            'prompt' => 'Execute the approved plan.',
+            '--execute' => true,
+            '--plan' => $project . '/missing-plan.yaml',
+        ]);
+
+        self::assertSame(Command::FAILURE, $status);
+        self::assertStringContainsString('unexpected-branch', $tester->getDisplay());
+        self::assertStringNotContainsString('Plan is not approved.', $tester->getDisplay());
+    }
+
+    public function testExecutionReportsConfiguredDiffRiskBeforeReturningForReview(): void
+    {
+        $project = $this->temporaryDirectory . '/repos/example';
+        file_put_contents($project . '/.yaup.yaml', <<<'YAML'
+            git_guardrails:
+              diff_review:
+                rules:
+                  - id: broad-source-change-without-tests
+                    changed_paths: ['src/**']
+                    test_paths: ['tests/**']
+                    minimum_files: 3
+                    action: block
+            YAML);
+        mkdir($project . '/plans');
+        $plan = $project . '/plans/task.yaml';
+        file_put_contents($plan, <<<'YAML'
+            status: approved
+            approval:
+              approved: true
+              approver: human
+              approved_at: '2026-10-15T10:00:00+01:00'
+            YAML);
+        $this->initializeGit($project, 'feature/39-test');
+
+        [$tester, $status] = $this->executeWithFixtureCodex([
+            'agent' => 'codex',
+            'project' => $project,
+            'prompt' => 'Execute the approved plan.',
+            '--execute' => true,
+            '--plan' => $plan,
+        ], "#!/bin/sh\nmkdir -p src\nprintf one > src/One.php\nprintf two > src/Two.php\nprintf three > src/Three.php\n");
+
+        self::assertSame(Command::FAILURE, $status);
+        self::assertStringContainsString('broad-source-change-without-tests', $tester->getDisplay());
+        self::assertStringContainsString('src/One.php', $tester->getDisplay());
+    }
+
     /**
      * @param array<string, mixed> $arguments
      *
@@ -423,5 +511,17 @@ final class AgentCommandTest extends TestCase
     private function git(string $repository, array $arguments): void
     {
         (new Process(['git', '-C', $repository, ...$arguments]))->mustRun();
+    }
+
+    private function initializeGit(string $project, string $branch): void
+    {
+        $this->git($project, ['init', '-q', '-b', 'main']);
+        $this->git($project, ['config', 'user.email', 'test@example.com']);
+        $this->git($project, ['config', 'user.name', 'Human']);
+        $this->git($project, ['add', '-A']);
+        $this->git($project, ['commit', '-q', '-m', 'fixture']);
+        if ('main' !== $branch) {
+            $this->git($project, ['switch', '-q', '-c', $branch]);
+        }
     }
 }
