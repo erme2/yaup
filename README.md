@@ -168,6 +168,34 @@ verification_plan:
 
 If a configured test-first guard applies, plans must declare at least one canonical repository-relative path in `scope.files` (or legacy `changes[].path`) so Yaup can determine whether the guard applies. Paths containing internal `.` or empty segments are rejected to prevent aliases from bypassing path matching. A passing pre-execution test, a failure without the configured marker, a missing test file, or an omitted plan command blocks execution with an actionable error.
 
+## Git hygiene and diff review
+
+Projects can configure Git checks in `.yaup.yaml` under `git_guardrails`. Task-start checks run before the agent starts in planning or execution mode. A clean-tree check can `block` or `warn`, and an expected-branch rule accepts exact names or `*`/`?` patterns with the same actions. The checks inspect tracked, staged, unstaged, renamed, and untracked paths. Yaup never stashes, resets, cleans, or otherwise changes existing user work. A warning lists the paths so the caller can decide whether to proceed.
+
+Diff-review rules run after a successful execution and can be rerun before approval with `bin/yaup git:review repos/example`. By default, review compares the current branch with `main` and includes staged, unstaged, and untracked work; set `diff_review.base_ref` to a different local ref when needed. Each rule matches configured changed-path patterns and reports a finding when at least `minimum_files` paths match but no changed path matches its test patterns. Actions are `block` (must be fixed in the diff), `warn` (reported without failing), or `require_resolution` (fails until the human explicitly acknowledges the finding by ID with `--acknowledge <id>`). A `block` finding cannot be acknowledged. Checks report paths and reasons; they are review signals, not proof that a change is unsafe or safe.
+
+For example, block execution on a dirty tree and an unexpected branch, and require explicit human acknowledgment when three or more source files change without a test update:
+
+```yaml
+git_guardrails:
+  task_start:
+    execution:
+      clean_working_tree: block
+      expected_branch:
+        patterns: ['feature/*']
+        action: block
+  diff_review:
+    base_ref: main
+    rules:
+      - id: broad-source-change-without-tests
+        changed_paths: ['src/**']
+        test_paths: ['tests/**']
+        minimum_files: 3
+        action: require_resolution
+```
+
+After an execution reports a `require_resolution` finding, inspect it with `bin/yaup git:review repos/example`, then explicitly resolve the current finding by ID, for example `bin/yaup git:review repos/example --acknowledge broad-source-change-without-tests`. This acknowledges only findings present in the current diff; blocking findings still need to be fixed.
+
 ## Private repositories
 
 Project workflows pin an exact Yaup release and use a read-only GitHub App token to download private artifacts. Configure `YAUP_APP_ID` and `YAUP_APP_PRIVATE_KEY` as repository or organization secrets. Repository identity is configured once in `config/yaup.yaml` so a rename does not require source changes.

@@ -3,6 +3,7 @@ yaup:
   repository: erme2/yaup
   version: v0.1.0
 rule_overrides: {}
+git_guardrails: {}
 validation:
   focused-tests:
     command: REPLACE_ME
