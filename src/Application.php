@@ -19,7 +19,7 @@ final class Application extends SymfonyApplication
 {
     public function __construct(string $root)
     {
-        parent::__construct('yaup', '0.1.0-dev');
+        parent::__construct('yaup', VersionResolver::resolve($root));
         $this->addCommands([
             new DiscoverCommand($root),
             new RulesResolveCommand($root),
