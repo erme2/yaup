@@ -97,7 +97,7 @@ final class InstructionsSyncCommand extends Command
         }
 
         $file = rtrim($path, '/') . '/AGENTS.md';
-        $content = $this->bridgeContent($name);
+        $content = $this->bridgeContent($name, $path);
         if (!is_file($file)) {
             if (!$this->writeFile($file, $content)) {
                 return 'write failed';
@@ -127,19 +127,52 @@ final class InstructionsSyncCommand extends Command
         return false !== @file_put_contents($file, $content);
     }
 
-    private function bridgeContent(string $name): string
+    private function bridgeContent(string $name, string $path): string
     {
         return self::MARKER . "\n"
             . "# Agent Instructions\n\n"
-            . "This repository is registered with Yaup as `{$name}` and lives inside `{$this->root}/repos`.\n"
+            . "This repository is registered with Yaup as `{$name}` and {$this->locationSentence($name, $path)}\n"
             . "Yaup is the authoritative source for shared agent rules, guardrails, playbooks, and skills.\n\n"
-            . "Before doing ticket work here, read and follow:\n\n"
-            . "- `{$this->root}/policies/core.md`\n"
-            . "- `{$this->root}/policies/rules.yaml`\n"
-            . "- the relevant skill in `{$this->root}/skills/`\n"
-            . "- the relevant playbook in `{$this->root}/playbooks/`\n\n"
+            . "Before doing ticket work here, read and follow (paths relative to the Yaup root):\n\n"
+            . "- `policies/core.md`\n"
+            . "- `policies/rules.yaml`\n"
+            . "- the relevant skill in `skills/`\n"
+            . "- the relevant playbook in `playbooks/`\n\n"
             . "Repository-local instructions may add project-specific context, but they must not weaken or override Yaup rules.\n"
             . "If instructions conflict, Yaup wins.\n";
+    }
+
+    // Bridge files are committed to project repositories, so never embed this machine's absolute paths.
+    private function locationSentence(string $name, string $path): string
+    {
+        $root = rtrim($this->root, '/');
+        $path = rtrim($path, '/');
+        $toRoot = $this->relativePath($path, $root);
+        if (str_starts_with($path, $root . '/')) {
+            $relative = substr($path, strlen($root) + 1);
+
+            return "is checked out at `<yaup>/{$relative}` in a local Yaup checkout, so the Yaup root is `{$toRoot}` from here.";
+        }
+
+        return "is checked out outside the Yaup checkout. When this file was generated, the Yaup root was `{$toRoot}` from here;\n"
+            . "if that path does not exist, use the Yaup checkout whose `config/repositories.yaml` registers `{$name}`.";
+    }
+
+    private function relativePath(string $from, string $to): string
+    {
+        $fromParts = array_values(array_filter(explode('/', $from), static fn(string $part): bool => '' !== $part));
+        $toParts = array_values(array_filter(explode('/', $to), static fn(string $part): bool => '' !== $part));
+        $common = 0;
+        while (isset($fromParts[$common], $toParts[$common]) && $fromParts[$common] === $toParts[$common]) {
+            ++$common;
+        }
+
+        $parts = array_merge(
+            array_fill(0, count($fromParts) - $common, '..'),
+            array_slice($toParts, $common)
+        );
+
+        return [] === $parts ? '.' : implode('/', $parts);
     }
 
     private function isManagedBridge(string $content): bool

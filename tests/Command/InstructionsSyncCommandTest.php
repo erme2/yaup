@@ -43,8 +43,50 @@ final class InstructionsSyncCommandTest extends TestCase
         self::assertIsString($content);
         self::assertStringContainsString('<!-- yaup-managed-agent-bridge -->', $content);
         self::assertStringContainsString('registered with Yaup as `example`', $content);
-        self::assertStringContainsString($this->temporaryDirectory . '/policies/core.md', $content);
+        self::assertStringContainsString('- `policies/core.md`', $content);
+        self::assertStringContainsString('checked out at `<yaup>/repos/example`', $content);
+        self::assertStringContainsString('the Yaup root is `../..` from here', $content);
+        self::assertStringNotContainsString($this->temporaryDirectory, $content);
         self::assertStringContainsString('created', $tester->getDisplay());
+    }
+
+    public function testDescribesCheckoutOutsideYaupRootWithoutAbsolutePaths(): void
+    {
+        $outside = $this->temporaryDirectory . '-outside';
+        mkdir($outside);
+        try {
+            file_put_contents(
+                $this->temporaryDirectory . '/config/repositories.yaml',
+                "schema_version: 1\nrepositories:\n  - name: example\n    path: {$outside}\n    remote: git@example.com:example/repo.git\n"
+            );
+
+            $tester = new CommandTester(new InstructionsSyncCommand($this->temporaryDirectory));
+            self::assertSame(Command::SUCCESS, $tester->execute([]));
+
+            $content = (string) file_get_contents($outside . '/AGENTS.md');
+            $rootName = basename($this->temporaryDirectory);
+            self::assertStringContainsString("the Yaup root was `../{$rootName}` from here", $content);
+            self::assertStringContainsString('whose `config/repositories.yaml` registers `example`', $content);
+            self::assertStringNotContainsString($this->temporaryDirectory, $content);
+        } finally {
+            @unlink($outside . '/AGENTS.md');
+            @rmdir($outside);
+        }
+    }
+
+    public function testRewritesBridgeWithAbsolutePathsToRelativePaths(): void
+    {
+        $file = $this->temporaryDirectory . '/repos/example/AGENTS.md';
+        file_put_contents(
+            $file,
+            "<!-- yaup-managed-agent-bridge -->\n# Agent Instructions\n\n- `{$this->temporaryDirectory}/policies/core.md`\n"
+        );
+
+        $tester = new CommandTester(new InstructionsSyncCommand($this->temporaryDirectory));
+        self::assertSame(Command::SUCCESS, $tester->execute([]));
+
+        self::assertStringNotContainsString($this->temporaryDirectory, (string) file_get_contents($file));
+        self::assertStringContainsString('updated', $tester->getDisplay());
     }
 
     public function testCanSyncSelectedProjectsOnly(): void
