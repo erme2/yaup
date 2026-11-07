@@ -131,7 +131,7 @@ final class InstructionsSyncCommand extends Command
     {
         return self::MARKER . "\n"
             . "# Agent Instructions\n\n"
-            . "This repository is registered with Yaup as `{$name}` and {$this->locationSentence($path)}\n"
+            . "This repository is registered with Yaup as `{$name}` and {$this->locationSentence($name, $path)}\n"
             . "Yaup is the authoritative source for shared agent rules, guardrails, playbooks, and skills.\n\n"
             . "Before doing ticket work here, read and follow (paths relative to the Yaup root):\n\n"
             . "- `policies/core.md`\n"
@@ -143,18 +143,36 @@ final class InstructionsSyncCommand extends Command
     }
 
     // Bridge files are committed to project repositories, so never embed this machine's absolute paths.
-    private function locationSentence(string $path): string
+    private function locationSentence(string $name, string $path): string
     {
         $root = rtrim($this->root, '/');
         $path = rtrim($path, '/');
-        if (!str_starts_with($path, $root . '/')) {
-            return 'is checked out outside the local Yaup checkout.';
+        $toRoot = $this->relativePath($path, $root);
+        if (str_starts_with($path, $root . '/')) {
+            $relative = substr($path, strlen($root) + 1);
+
+            return "is checked out at `<yaup>/{$relative}` in a local Yaup checkout, so the Yaup root is `{$toRoot}` from here.";
         }
 
-        $relative = substr($path, strlen($root) + 1);
-        $up = implode('/', array_fill(0, substr_count($relative, '/') + 1, '..'));
+        return "is checked out outside the Yaup checkout. When this file was generated, the Yaup root was `{$toRoot}` from here;\n"
+            . "if that path does not exist, use the Yaup checkout whose `config/repositories.yaml` registers `{$name}`.";
+    }
 
-        return "is checked out at `<yaup>/{$relative}` in a local Yaup checkout, so the Yaup root is `{$up}` from here.";
+    private function relativePath(string $from, string $to): string
+    {
+        $fromParts = array_values(array_filter(explode('/', $from), static fn(string $part): bool => '' !== $part));
+        $toParts = array_values(array_filter(explode('/', $to), static fn(string $part): bool => '' !== $part));
+        $common = 0;
+        while (isset($fromParts[$common], $toParts[$common]) && $fromParts[$common] === $toParts[$common]) {
+            ++$common;
+        }
+
+        $parts = array_merge(
+            array_fill(0, count($fromParts) - $common, '..'),
+            array_slice($toParts, $common)
+        );
+
+        return [] === $parts ? '.' : implode('/', $parts);
     }
 
     private function isManagedBridge(string $content): bool

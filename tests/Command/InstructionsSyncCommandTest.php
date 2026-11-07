@@ -64,7 +64,9 @@ final class InstructionsSyncCommandTest extends TestCase
             self::assertSame(Command::SUCCESS, $tester->execute([]));
 
             $content = (string) file_get_contents($outside . '/AGENTS.md');
-            self::assertStringContainsString('is checked out outside the local Yaup checkout.', $content);
+            $rootName = basename($this->temporaryDirectory);
+            self::assertStringContainsString("the Yaup root was `../{$rootName}` from here", $content);
+            self::assertStringContainsString('whose `config/repositories.yaml` registers `example`', $content);
             self::assertStringNotContainsString($this->temporaryDirectory, $content);
         } finally {
             @unlink($outside . '/AGENTS.md');
