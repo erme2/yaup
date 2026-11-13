@@ -1,0 +1,175 @@
+schema_version: 1
+id: 2026-11-13-maps-track-two-agents
+title: Maps track with two agents working in parallel (Pane lane and Latte/app lane)
+status: proposed
+
+approval:
+  approved: false
+  approver: null
+  approved_at: null
+  approval_commit: null
+
+context:
+  decisions: https://github.com/erme2/Pane/pull/152
+  summary: >
+    Pane and Latte become the REST API and control panel for every app. Maps in
+    Pane's database describe tables, ui views, menu, functions, settings,
+    policies, groups, queries and actions; they are edited in Latte, kept
+    separate from the real tables (which come from each app's migrations), and
+    compared with them by discovery.
+
+scope:
+  included:
+    - File the new-track tickets below on board 14 with feature titles, priority labels and dependencies.
+    - Tidy the board so w-next is truthful (park superseded tickets, fix wrong statuses).
+    - Run two agents in parallel, one per lane, each in its own registered checkouts.
+    - Contract first, so the Latte lane can build against the API before Pane implements it.
+  excluded:
+    - Worktrees or temporary clones (Yaup requires the registered checkouts; the lanes are split by repository instead).
+    - External managed databases (#68, #72, #73), Burro (Latte#34-36), impersonation (#66).
+    - Merging PRs, closing issues or moving items to Done (human only).
+  files:
+    - skills/w-next/SKILL.md
+    - skills/w-next/w-next.py
+
+lanes:
+  agent_a:
+    name: Pane lane
+    checkouts: [repos/pane]
+  agent_b:
+    name: Latte and app lane
+    checkouts: [repos/Latte, repos/sweegly, repos/deploy]
+  rules:
+    - An agent only touches its own lane's checkouts, so the two never edit the same working tree.
+    - A Latte ticket that needs a Pane endpoint starts once that endpoint's contract (OpenAPI in contracts/pane-v1.json) is merged, and uses the contract fixture until the implementation lands.
+    - Each agent takes the next unblocked ticket in its lane from w-next, runs just do, and moves on while the PR waits for review.
+    - A ticket waiting on the other lane carries status blocked and names the blocking ticket; the agent that unblocks it removes the label.
+
+tickets:
+  # Step 0: board tidy-up (needs the human's go-ahead, outside any one ticket).
+  board_tidy:
+    - Move Pane#68 and Pane#70 from In Review to Todo with status blocked (external sources parked; PR #151 is a draft).
+    - Mark Pane#71, #72, #73, #128, #129, Latte#32, Latte#33 and sweegly#20 as superseded by the new tickets (comment with the link, keep open until the human closes them).
+    - Pane#140 is in review but blocked on the manual Hostinger cron; keep it, and note the manual step.
+
+  agent_a:
+    - id: A1
+      title: "feature: maps model in the database, seeded from the legacy map tables"
+      priority: blocking
+      depends_on: ["Pane PR #152 merged"]
+      notes: "Versioned, audited map edits; sources, tables, fields, ui part; system maps flagged and protected; current map_* content imported as the first maps."
+    - id: A2
+      title: "feature: maps read API and contract for Latte (menu, views, functions, public settings)"
+      priority: blocking
+      depends_on: [A1]
+      notes: "Contract first (OpenAPI + fixture) so Latte can start; unlocks B2."
+    - id: A3
+      title: "feature: discover the install's own app tables and report differences with the maps"
+      priority: high
+      depends_on: [A1]
+      notes: "Reshapes draft PR #151 (#70); scans the app prefix only, never system tables."
+    - id: A4
+      title: "feature: /data CRUD by table name with per-table access policies and row conditions"
+      priority: blocking
+      depends_on: [A1]
+      notes: "Contract first; unlocks B3. Unmapped tables and fields are never exposed."
+    - id: A5
+      title: "feature: maps admin API (edit maps, menu, functions, settings; system maps protected)"
+      priority: high
+      depends_on: [A2]
+      notes: "Unlocks B4."
+    - id: A6
+      title: "feature: settings declared in maps and uploads to S3-compatible storage"
+      priority: high
+      depends_on: [A2]
+      notes: "Needs the S3 provider decision (open question). Unlocks B5."
+    - id: A7
+      title: "feature: groups as a building block (households, teams) in access policies"
+      priority: medium
+      depends_on: [A4]
+    - id: A8
+      title: "feature: named queries and a limited client query language"
+      priority: medium
+      depends_on: [A4]
+    - id: A9
+      title: "feature: declarative actions (send a message template, set a field, call a webhook)"
+      priority: medium
+      depends_on: [A4]
+    - id: A10
+      title: "feature: export and import map bundles with a dry-run diff"
+      priority: medium
+      depends_on: [A5]
+    - id: "Pane#74"
+      title: Migrate off the legacy Story, Action, Mapper, and map-table API (existing)
+      priority: low
+      depends_on: [A4, B3]
+
+  agent_b:
+    - id: B1
+      title: "feature: app repo for Sweegly migrations and bundles, run by the deploy (reshapes sweegly#19)"
+      priority: blocking
+      depends_on: []
+      notes: "Creating erme2/sweegly-data is a new repo and needs the human's go-ahead; deploy runs its migrations on each install."
+    - id: "sweegly#17"
+      title: "feature: make List the central tab and disable Report a price (existing)"
+      priority: high
+      depends_on: []
+    - id: B2
+      title: "feature: Latte shell built from Pane maps (menu, enabled functions, branding)"
+      priority: blocking
+      depends_on: ["A2 contract merged"]
+    - id: B3
+      title: "feature: Latte list and edit views for records, from the maps' ui part"
+      priority: blocking
+      depends_on: [B2, "A4 contract merged"]
+    - id: B4
+      title: "feature: Latte editors for maps, menu and settings (always available)"
+      priority: high
+      depends_on: [B2, "A5 contract merged"]
+    - id: B5
+      title: "feature: Latte settings, logo and texts from public settings"
+      priority: high
+      depends_on: [B2, A6]
+    - id: "Latte#57"
+      title: "bugfix: cap invitation tokens at Pane v1's 255-character limit (existing, filler work)"
+      priority: low
+      depends_on: []
+
+order_of_work:
+  - step: 1
+    agent_a: A1
+    agent_b: "B1, then sweegly#17"
+  - step: 2
+    agent_a: "A2 (contract first), then A4 (contract first)"
+    agent_b: B2 once A2's contract is merged; Latte#57 while waiting
+  - step: 3
+    agent_a: "A3, A5"
+    agent_b: B3 once A4's contract is merged
+  - step: 4
+    agent_a: "A6, A7"
+    agent_b: "B4, B5"
+  - step: 5
+    agent_a: "A8, A9, A10, then Pane#74"
+    agent_b: Latte features for queries and actions as they land
+
+implementation_steps:
+  - Add the w-next skill (skills/w-next) to show merged, blocked, in-progress and next tickets.
+  - After approval and with the human's go-ahead, tidy the board and file tickets A1-A10, B1-B5 on board 14 with dependencies and status blocked where they wait on another ticket.
+  - Start agent A on A1 and agent B on B1 with just do; each picks its next ticket from w-next.
+
+verification_plan:
+  - skills/w-next/w-next.py --owner erme2 --project 14 prints the four groups and matches the board.
+  - After filing, w-next shows A1 and B1 among the next tickets and every waiting ticket as blocked with its blocker named.
+  - Each ticket follows its repository's validation (tests, static analysis, CI) through just do.
+
+risks:
+  - Both lanes depend on the API contract; a contract change after Latte starts costs rework. Mitigation, contract-first PRs reviewed before implementation.
+  - Open decisions (map and bundle format, system maps, S3 provider, group rules, first Latte functions) can block A1, A6 or A7; ask them when the ticket starts, one at a time.
+  - Two agents opening PRs in parallel increase the review load on the human; w-next shows what is waiting.
+  - Superseded tickets left open confuse the board; they are commented and await the human's decision to close.
+
+completion:
+  changes: []
+  validation: []
+  deviations: []
+  next_steps: []

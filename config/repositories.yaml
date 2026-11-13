@@ -15,3 +15,6 @@ repositories:
   - name: erme2.com
     path: /Volumes/code/yaup/repos/erme2.com
     remote: 'git@github.com:erme2/erme2.com.git'
+  - name: sweegly
+    path: /Volumes/code/yaup/repos/sweegly
+    remote: 'git@github.com:erme2/sweegly.git'

@@ -16,3 +16,5 @@ Command shorthand:
 - `R4R`: publish current ticket work for review by committing intended changes, pushing, opening or updating PRs, and moving the ticket to review when possible.
 - `IR <pr-or-ticket>`: perform independent review only; post findings and do not implement fixes.
 - `L8P <pr>`: after R4R, loop review, fix actionable findings, validate, commit, and push until clean or blocked.
+- `C-F <comment-links>`: check one or more PR comments, fix the valid ones in scope, validate, push, and reply on the PR for every comment (fixed, deferred or not valid).
+- `just do <ticket>`: `jump on` and then `R4R` in one run, without stopping for review; stops before publishing if validation fails or the work is blocked.
