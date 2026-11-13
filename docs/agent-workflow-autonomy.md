@@ -8,7 +8,7 @@ Autonomy applies only to repositories registered with this Yaup installation unl
 
 ## Always Allowed After Shortcut Invocation
 
-After a human invokes `jump on`, `R4R`, `IR`, or `L8P` for a Yaup ticket or pull request, agents may inspect related GitHub and Git state without asking again:
+After a human invokes `jump on`, `R4R`, `IR`, `L8P`, or `C-F` for a Yaup ticket or pull request, agents may inspect related GitHub and Git state without asking again:
 
 - Read issues, pull requests, comments, reviews, labels, milestones, project items, workflow runs, and check results.
 - Fetch remote refs and inspect branch, commit, and diff state.
@@ -41,6 +41,23 @@ After a human invokes `jump on`, `R4R`, `IR`, or `L8P` for a Yaup ticket or pull
 - Check CI and report status.
 
 `R4R` does not authorize PR approval, merging, force pushing, branch deletion, destructive filesystem commands, production access, secrets disclosure, repository settings changes, branch-protection changes, global dependency installation, or unrelated publication.
+
+## `C-F`
+
+`C-F` authorizes checking the named PR comments and fixing the valid ones:
+
+- Read the named comments and check each claim against the current code.
+- Fix only comments that are valid and in scope, on the existing PR branch, with validation proportional to the fix.
+- Commit and push fixup commits to the PR branch.
+- Reply on the PR to every named comment: fixed (with the commit), deferred (with the reason and where it is going), or not valid (with the evidence).
+
+`C-F` does not authorize resolving threads, PR approval, merging, force pushing or rebasing published history, branch deletion, issue closure, creating tickets unless asked, or scope expansion.
+
+## `just do`
+
+`just do <ticket>` runs `jump on` and then `R4R` in one go, without the human review stop. It authorizes the `jump on` actions and the `R4R` actions, and nothing else. It stops before committing or opening the PR when validation fails, when the ticket is blocked, or when the change needs a decision or falls outside the ticket's scope.
+
+`just do` does not authorize PR approval, merging, enabling auto-merge, resolving threads, closing issues, moving items to `Done`, force pushing, branch deletion, settings or secrets changes, production access, or creating tickets.
 
 ## `IR`
 
