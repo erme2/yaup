@@ -3,9 +3,10 @@
 
 Prints Markdown with four groups from a GitHub project board:
 recently merged PRs (green), blocked tickets (red), tickets in progress or in
-review (black), and the next tickets to pick up (blue).
+review (black), and the next tickets to pick up (blue): unblocked Todo items in
+board order, which follows the plan, or by priority label with --sort priority.
 
-Usage: w-next.py [--owner erme2] [--project 14] [--merged 5] [--next 4]
+Usage: w-next.py [--owner erme2] [--project 14] [--merged 5] [--next 4] [--sort board|priority]
 """
 import argparse
 import json
@@ -44,6 +45,8 @@ def main():
     parser.add_argument("--project", default="14")
     parser.add_argument("--merged", type=int, default=5)
     parser.add_argument("--next", type=int, default=4)
+    parser.add_argument("--sort", choices=["board", "priority"], default="board",
+                        help="next tickets in board order (the curated plan order) or by priority label")
     args = parser.parse_args()
 
     board = gh("project", "item-list", args.project, "--owner", args.owner, "--limit", "500", "--format", "json")
@@ -66,10 +69,14 @@ def main():
     merged.sort(key=lambda pr: pr.get("closedAt") or "", reverse=True)
 
     open_items = [i for i in items if i["status"] != "Done"]
-    blocked = [i for i in open_items if BLOCKED in i["labels"]]
-    working = [i for i in open_items if i["status"] in ("In Progress", "In Review") and BLOCKED not in i["labels"]]
-    todo = [i for i in open_items if i["status"] == "Todo" and BLOCKED not in i["labels"]]
-    todo.sort(key=lambda i: (priority(i["labels"]), i["position"]))
+    def is_blocked(i):
+        return i["status"].lower() == "blocked" or BLOCKED in i["labels"]
+
+    blocked = [i for i in open_items if is_blocked(i)]
+    working = [i for i in open_items if i["status"] in ("In Progress", "In Review") and not is_blocked(i)]
+    todo = [i for i in open_items if i["status"] == "Todo" and not is_blocked(i)]
+    if args.sort == "priority":
+        todo.sort(key=lambda i: (priority(i["labels"]), i["position"]))
 
     def line(emoji, item, extra=""):
         c = item["content"]
@@ -79,7 +86,7 @@ def main():
     out += [f"- 🟢 [{pr['repository']['name']}#{pr['number']}]({pr['url']}) {pr['title']} ({(pr.get('closedAt') or '')[:10]})"
             for pr in merged[:args.merged]] or ["- none"]
     out.append("\n### 🔴 Blocked")
-    out += [line("🔴", i, f" ({i['status']})" if i["status"] != "Todo" else "") for i in sorted(blocked, key=lambda i: (priority(i["labels"]), i["position"]))] or ["- none"]
+    out += [line("🔴", i, f" ({i['status']})" if i["status"] not in ("Todo", "blocked") else "") for i in sorted(blocked, key=lambda i: (priority(i["labels"]), i["position"]))] or ["- none"]
     out.append("\n### ⚫ In progress / in review")
     out += [line("⚫", i, f" ({i['status']})") for i in working] or ["- none"]
     out.append(f"\n### 🔵 Next {args.next}")

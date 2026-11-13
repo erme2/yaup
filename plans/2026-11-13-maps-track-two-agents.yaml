@@ -43,7 +43,7 @@ lanes:
     - An agent only touches its own lane's checkouts, so the two never edit the same working tree.
     - A Latte ticket that needs a Pane endpoint starts once that endpoint's contract (OpenAPI in contracts/pane-v1.json) is merged, and uses the contract fixture until the implementation lands.
     - Each agent takes the next unblocked ticket in its lane from w-next, runs just do, and moves on while the PR waits for review.
-    - A ticket waiting on the other lane carries status blocked and names the blocking ticket; the agent that unblocks it removes the label.
+    - A ticket waiting on another ticket sits in the board's blocked column with the status: blocked label and names the blocking ticket; the agent that unblocks it removes the label and moves it to Todo.
 
 tickets:
   # Step 0: board tidy-up (needs the human's go-ahead, outside any one ticket).
@@ -54,48 +54,58 @@ tickets:
 
   agent_a:
     - id: A1
+      issue: "Pane#153"
       title: "feature: maps model in the database, seeded from the legacy map tables"
       priority: blocking
       depends_on: ["Pane PR #152 merged"]
       notes: "Versioned, audited map edits; sources, tables, fields, ui part; system maps flagged and protected; current map_* content imported as the first maps."
     - id: A2
+      issue: "Pane#154"
       title: "feature: maps read API and contract for Latte (menu, views, functions, public settings)"
       priority: blocking
       depends_on: [A1]
       notes: "Contract first (OpenAPI + fixture) so Latte can start; unlocks B2."
     - id: A3
+      issue: "Pane#155"
       title: "feature: discover the install's own app tables and report differences with the maps"
       priority: high
       depends_on: [A1]
       notes: "Reshapes draft PR #151 (#70); scans the app prefix only, never system tables."
     - id: A4
+      issue: "Pane#156"
       title: "feature: /data CRUD by table name with per-table access policies and row conditions"
       priority: blocking
       depends_on: [A1]
       notes: "Contract first; unlocks B3. Unmapped tables and fields are never exposed."
     - id: A5
+      issue: "Pane#157"
       title: "feature: maps admin API (edit maps, menu, functions, settings; system maps protected)"
       priority: high
       depends_on: [A2]
       notes: "Unlocks B4."
     - id: A6
+      issue: "Pane#158"
       title: "feature: settings declared in maps and uploads to S3-compatible storage"
       priority: high
       depends_on: [A2]
-      notes: "Needs the S3 provider decision (open question). Unlocks B5."
+      notes: "Cloudflare R2, one bucket and key set per install (decision 35). Unlocks B5."
     - id: A7
+      issue: "Pane#159"
       title: "feature: groups as a building block (households, teams) in access policies"
       priority: medium
       depends_on: [A4]
     - id: A8
+      issue: "Pane#160"
       title: "feature: named queries and a limited client query language"
       priority: medium
       depends_on: [A4]
     - id: A9
+      issue: "Pane#161"
       title: "feature: declarative actions (send a message template, set a field, call a webhook)"
       priority: medium
       depends_on: [A4]
     - id: A10
+      issue: "Pane#162"
       title: "feature: export and import map bundles with a dry-run diff"
       priority: medium
       depends_on: [A5]
@@ -106,6 +116,7 @@ tickets:
 
   agent_b:
     - id: B1
+      issue: "sweegly#19"
       title: "feature: app repo for Sweegly migrations and bundles, run by the deploy (reshapes sweegly#19)"
       priority: blocking
       depends_on: []
@@ -115,21 +126,31 @@ tickets:
       priority: high
       depends_on: []
     - id: B2
+      issue: "Latte#69"
       title: "feature: Latte shell built from Pane maps (menu, enabled functions, branding)"
       priority: blocking
       depends_on: ["A2 contract merged"]
     - id: B3
+      issue: "Latte#70"
       title: "feature: Latte list and edit views for records, from the maps' ui part"
       priority: blocking
       depends_on: [B2, "A4 contract merged"]
     - id: B4
+      issue: "Latte#71"
       title: "feature: Latte editors for maps, menu and settings (always available)"
       priority: high
       depends_on: [B2, "A5 contract merged"]
     - id: B5
+      issue: "Latte#72"
       title: "feature: Latte settings, logo and texts from public settings"
       priority: high
       depends_on: [B2, A6]
+    - id: B6
+      issue: "Latte#73"
+      title: "feature: Latte members and dashboard as switchable functions"
+      priority: medium
+      depends_on: [B2]
+      notes: "Decision 36: members and invitations (existing screens, moved under the function switch) and a dashboard configured in the maps."
     - id: "Latte#57"
       title: "bugfix: cap invitation tokens at Pane v1's 255-character limit (existing, filler work)"
       priority: low
@@ -147,7 +168,7 @@ order_of_work:
     agent_b: B3 once A4's contract is merged
   - step: 4
     agent_a: "A6, A7"
-    agent_b: "B4, B5"
+    agent_b: "B4, B5, B6"
   - step: 5
     agent_a: "A8, A9, A10, then Pane#74"
     agent_b: Latte features for queries and actions as they land
@@ -164,7 +185,7 @@ verification_plan:
 
 risks:
   - Both lanes depend on the API contract; a contract change after Latte starts costs rework. Mitigation, contract-first PRs reviewed before implementation.
-  - Open decisions (map and bundle format, system maps, S3 provider, group rules, first Latte functions) can block A1, A6 or A7; ask them when the ticket starts, one at a time.
+  - Open decisions (map and bundle format, query limits, action blocks, group rules) can block A1, A7, A8 or A9; ask them when the ticket starts, one at a time.
   - Two agents opening PRs in parallel increase the review load on the human; w-next shows what is waiting.
   - Superseded tickets left open confuse the board; they are commented and await the human's decision to close.
 

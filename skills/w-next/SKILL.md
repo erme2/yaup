@@ -21,9 +21,9 @@ Use this skill when the user says `w-next`, optionally with a number of next tic
 
 2. Show the script's Markdown output to the user as it is. The terminal cannot color text, so the groups are marked with colored circles:
    - 🟢 recently merged PRs, newest first;
-   - 🔴 blocked tickets (`status: blocked` label), by priority;
+   - 🔴 blocked tickets (in the board's `blocked` column or with the `status: blocked` label), by priority;
    - ⚫ tickets in progress or in review;
-   - 🔵 the next tickets: `Todo`, not blocked, ordered by priority label (blocking, high, medium, low) and then board order.
+   - 🔵 the next tickets: `Todo` and not blocked, in board order. The board is kept in plan order, with a Priority field for sorting in GitHub. Add `--sort priority` to order by priority label instead.
 
 3. After the list, add at most two short lines:
    - an inconsistency worth fixing, if one is obvious (for example a ticket in review with no open PR, or a blocked ticket whose blockers are closed);
