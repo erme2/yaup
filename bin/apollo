@@ -1,0 +1,49 @@
+#!/bin/sh
+# Runs one apollo pass (skills/apollo/SKILL.md). Started by launchd every 15 minutes, at :02, :17, :32 and :47 (Efesto runs at :00).
+# A run is skipped while an earlier run still holds the lock. Set APOLLO_DRY_RUN=1 to
+# report what would be merged or fixed without changing anything.
+
+set -u
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+LOCK="$ROOT/.apollo.lock"
+LOG="$ROOT/logs/apollo.log"
+CLAUDE="${CLAUDE_BIN:-$HOME/.local/bin/claude}"
+
+mkdir -p "$ROOT/logs"
+
+stamp() { date '+%Y-%m-%d %H:%M:%S'; }
+
+if [ -d "$LOCK" ]; then
+    pid="$(cat "$LOCK/pid" 2>/dev/null || echo "")"
+    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+        echo "$(stamp) skipped: previous run $pid still running" >> "$LOG"
+        exit 0
+    fi
+    # The earlier run is gone; its lock is stale.
+    rm -rf "$LOCK"
+fi
+
+mkdir "$LOCK" || { echo "$(stamp) skipped: could not take lock" >> "$LOG"; exit 0; }
+echo "$$" > "$LOCK/pid"
+trap 'rm -rf "$LOCK"' EXIT INT TERM
+
+if [ "${APOLLO_DRY_RUN:-0}" = "1" ]; then
+    mode="DRY RUN: report only, change nothing."
+else
+    mode="LIVE: merge and fix as the skill allows."
+fi
+
+echo "$(stamp) run started ($mode)" >> "$LOG"
+
+cd "$ROOT" || exit 1
+"$CLAUDE" -p "Run one apollo pass. Follow skills/apollo/SKILL.md and docs/agent-workflow-autonomy.md. $mode Write the run summary to logs/apollo.log." \
+    --allowedTools "Read" "Edit" "Write" "Grep" "Glob" \
+        "Bash(gh:*)" "Bash(git:*)" "Bash(php:*)" "Bash(composer:*)" "Bash(npm:*)" "Bash(npx:*)" "Bash(node:*)" \
+        "Bash(date:*)" "Bash(ls:*)" "Bash(cat:*)" "Bash(tail:*)" \
+        "mcp__claude_ai_Slack__slack_send_message" \
+    >> "$LOG" 2>&1
+status=$?
+
+echo "$(stamp) run finished (exit $status)" >> "$LOG"
+exit "$status"
