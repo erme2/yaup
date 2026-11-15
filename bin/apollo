@@ -14,18 +14,33 @@ mkdir -p "$ROOT/logs"
 
 stamp() { date '+%Y-%m-%d %H:%M:%S'; }
 
-if [ -d "$LOCK" ]; then
-    pid="$(cat "$LOCK/pid" 2>/dev/null || echo "")"
-    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-        echo "$(stamp) skipped: previous run $pid still running" >> "$LOG"
-        exit 0
+# Take the lock with mkdir, which is atomic. If it is held by a run that is gone, recover it under a
+# second lock ($LOCK.recover), so that two invocations can't both clear it and both proceed.
+# The pid is re-read under the recovery lock, so a lock that a recovering run just re-took is left alone.
+acquire_lock() {
+    if mkdir "$LOCK" 2>/dev/null; then
+        echo "$$" > "$LOCK/pid"
+        return 0
     fi
-    # The earlier run is gone; its lock is stale.
-    rm -rf "$LOCK"
-fi
+    mkdir "$LOCK.recover" 2>/dev/null || return 1
+    pid="$(cat "$LOCK/pid" 2>/dev/null || echo "")"
+    status=1
+    # An empty pid means a run is still writing it, so treat the lock as held rather than stale.
+    if [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then
+        rm -rf "$LOCK"
+        if mkdir "$LOCK" 2>/dev/null; then
+            echo "$$" > "$LOCK/pid"
+            status=0
+        fi
+    fi
+    rmdir "$LOCK.recover"
+    return $status
+}
 
-mkdir "$LOCK" || { echo "$(stamp) skipped: could not take lock" >> "$LOG"; exit 0; }
-echo "$$" > "$LOCK/pid"
+if ! acquire_lock; then
+    echo "$(stamp) skipped: previous run still running" >> "$LOG"
+    exit 0
+fi
 
 # Efesto and Dioniso switch branches in repos/ too: hold their shared checkout lock while this pass runs.
 # Remove the shared lock only if this run created it, so a skipped run never deletes another agent's lock.
