@@ -31,7 +31,17 @@ ALLOWED=(
   "mcp__claude_ai_Slack__slack_send_message" "mcp__claude_ai_Slack__slack_read_channel"
 )
 
-claude -p "$(cat "$HERE/prompt.md")" \
+PROMPT="$(cat "$HERE/prompt.md")"
+# ERMES_MESSAGE_ONLY=1 sends just the summary message to #sweegly: no board changes, no DMs, no starting line.
+if [ "${ERMES_MESSAGE_ONLY:-0}" = "1" ]; then
+  PROMPT="$PROMPT
+
+## This run: message only
+
+Skip steps 2a, 2, 3 and 4, the starting line, every DM and every board change. Read the board once, work out the summary message of Slack item 3 from the current state (the Ermes bullet says \`no changes (message-only run)\`), send only that one message to #sweegly, and report in one line."
+fi
+
+claude -p "$PROMPT" \
   --model claude-opus-5-5 \
   --allowedTools "${ALLOWED[@]}" \
   --output-format json > "$log.json" 2> "$log"
