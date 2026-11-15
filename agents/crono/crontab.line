@@ -1,0 +1,1 @@
+0 7 * * * /bin/bash __HOME__/.crono/run.sh >> __HOME__/.crono/logs/cron.log 2>&1

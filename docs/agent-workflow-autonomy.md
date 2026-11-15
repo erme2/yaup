@@ -82,6 +82,16 @@ After a human invokes `jump on`, `R4R`, `IR`, `L8P`, or `C-F` for a Yaup ticket 
 
 `L8P` does not authorize PR approval, merging, force pushing or rebasing published history, branch deletion, production access, secrets disclosure, or scope expansion.
 
+## `apollo`
+
+`apollo` is the scheduled pass started by `bin/apollo` every 15 minutes, at :02, :17, :32 and :47, over open pull requests in the registered repositories. It is the one place an agent may merge without a human at the keyboard, so the rules are narrow:
+
+- Merge a pull request only when its review decision is `APPROVED` by someone other than the author, every required check has passed, and no independent-reviewer finding is still open. Merge with `--squash`.
+- Fix open findings with the `C-F` steps: valid and in-scope fixes only, validated, pushed to the PR branch, and replied to on the PR. Anything else gets a PR comment with the reason.
+- Skip drafts. Switch a clean registered checkout to the PR's head branch before acting; skip a dirty checkout and report it.
+
+`apollo` does not authorize approving, dismissing reviews, resolving threads, enabling auto-merge, deleting branches, force pushing, closing issues, moving project items to `Done`, changing settings or secrets, deploying, or creating tickets.
+
 ## After Manual Merge
 
 After a human manually merges or closes a pull request, agents may update linked Yaup project items to `Done` and verify issue closure when the merge or closure already performed that action. Branch deletion remains manual or automation-owned, preferably handled by GitHub Actions.
@@ -93,7 +103,7 @@ Ask before any operation not explicitly allowed above. The default for unspecifi
 Always ask before:
 
 - Approving a pull request.
-- Merging a pull request.
+- Merging a pull request (except under the `apollo` rules above, for approved pull requests only).
 - Force pushing or rewriting history.
 - Deleting branches.
 - Closing issues outside normal linked-PR merge closure.

@@ -1,0 +1,1 @@
+10 * * * * /bin/bash __HOME__/.zeus/run.sh >> __HOME__/.zeus/logs/cron.log 2>&1

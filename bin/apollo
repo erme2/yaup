@@ -1,0 +1,62 @@
+#!/bin/sh
+# Runs one apollo pass (skills/apollo/SKILL.md). Started by launchd every 15 minutes, at :02, :17, :32 and :47 (Efesto runs at :00, Dioniso at :30).
+# A run is skipped while an earlier run still holds the lock. Set APOLLO_DRY_RUN=1 to
+# report what would be merged or fixed without changing anything.
+
+set -u
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+LOCK="$ROOT/.apollo.lock"
+LOG="$ROOT/logs/apollo.log"
+CLAUDE="${CLAUDE_BIN:-$HOME/.local/bin/claude}"
+
+mkdir -p "$ROOT/logs"
+
+stamp() { date '+%Y-%m-%d %H:%M:%S'; }
+
+# Take the lock with mkdir, which is atomic. If the lock is held, bin/apollo-recover takes it over only
+# when its owner is gone, under an flock that the kernel releases if the recovering process dies.
+acquire_lock() {
+    if mkdir "$LOCK" 2>/dev/null; then
+        echo "$$" > "$LOCK/pid"
+        return 0
+    fi
+    python3 -I "$ROOT/bin/apollo-recover" "$LOCK" "$ROOT/logs/apollo.recover" "$$"
+}
+
+if ! acquire_lock; then
+    echo "$(stamp) skipped: previous run still running" >> "$LOG"
+    exit 0
+fi
+
+# Efesto and Dioniso switch branches in repos/ too: hold their shared checkout lock while this pass runs.
+# Remove the shared lock only if this run created it, so a skipped run never deletes another agent's lock.
+SHARED_LOCK="$HOME/.yaup/checkouts.lock"
+SHARED_OWNED=0
+trap 'rm -rf "$LOCK"; if [ "$SHARED_OWNED" = 1 ]; then rm -rf "$SHARED_LOCK"; fi' EXIT INT TERM
+mkdir -p "$HOME/.yaup"
+if ! mkdir "$SHARED_LOCK" 2>/dev/null; then
+    echo "$(stamp) skipped: a board agent is using the checkouts" >> "$LOG"
+    exit 0
+fi
+SHARED_OWNED=1
+
+if [ "${APOLLO_DRY_RUN:-0}" = "1" ]; then
+    mode="DRY RUN: report only, change nothing."
+else
+    mode="LIVE: merge and fix as the skill allows."
+fi
+
+echo "$(stamp) run started ($mode)" >> "$LOG"
+
+cd "$ROOT" || exit 1
+"$CLAUDE" -p "Run one apollo pass. Follow skills/apollo/SKILL.md and docs/agent-workflow-autonomy.md. $mode Write the run summary to logs/apollo.log." \
+    --allowedTools "Read" "Edit" "Write" "Grep" "Glob" \
+        "Bash(gh:*)" "Bash(git:*)" "Bash(php:*)" "Bash(composer:*)" "Bash(npm:*)" "Bash(npx:*)" "Bash(node:*)" \
+        "Bash(date:*)" "Bash(ls:*)" "Bash(cat:*)" "Bash(tail:*)" \
+        "mcp__claude_ai_Slack__slack_send_message" \
+    >> "$LOG" 2>&1
+status=$?
+
+echo "$(stamp) run finished (exit $status)" >> "$LOG"
+exit "$status"
