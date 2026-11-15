@@ -8,3 +8,5 @@
 /.yaup.local.yaml
 /dist/
 .DS_Store
+/logs/
+/.apollo.lock/

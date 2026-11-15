@@ -17,7 +17,7 @@ Use this skill when the user says `w-next`, optionally with a number of next tic
    skills/w-next/w-next.py --owner erme2 --project 14 --merged 5 --next 4
    ```
 
-   Use the number the user gave for `--next`, and the board they named for `--project`. Board 14 ("Sweegly") holds the Pane, Latte, Sweegly app, sweegly-home and deploy tickets.
+   Use the number the user gave for `--next`, and the board they named for `--project`. Board 14 ("Sweegly") holds the Pane, Latte, Sweegly app, sweegly-home, sweegly-data and deploy tickets.
 
 2. Show the script's Markdown output to the user as it is. The terminal cannot color text, so the groups are marked with colored circles:
    - 🟢 recently merged PRs, newest first;
