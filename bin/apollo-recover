@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+# Takes over a stale Apollo lock. Used by bin/apollo only when mkdir of the lock directory has failed.
+#
+# Usage: apollo-recover.py <lock-dir> <recovery-file> <pid>
+#
+# The recovery step runs under an exclusive flock on <recovery-file>. The kernel releases a flock when
+# its process exits, even if that process was killed or suspended, so a dead recovery can't leave the
+# lock stuck, and a suspended one keeps its lock and no other run can recover in its place.
+#
+# Exit 0: the lock directory is now ours, with this run's pid in it.
+# Exit 1: a live run holds the lock, or another recovery is in progress. Skip this run.
+import fcntl
+import os
+import shutil
+import sys
+
+lock_dir, recovery_file, my_pid = sys.argv[1], sys.argv[2], sys.argv[3]
+
+
+def owner_is_gone(pid):
+    try:
+        os.kill(int(pid), 0)
+    except ProcessLookupError:
+        return True
+    except (ValueError, PermissionError):
+        return False
+    return False
+
+
+def main():
+    with open(recovery_file, "a+") as handle:
+        try:
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return 1  # another recovery is running right now
+
+        try:
+            with open(os.path.join(lock_dir, "pid")) as pid_file:
+                pid = pid_file.read().strip()
+        except FileNotFoundError:
+            pid = ""
+
+        # An empty pid means a run is still writing it, so treat the lock as held, not stale.
+        if not pid or not owner_is_gone(pid):
+            return 1
+
+        shutil.rmtree(lock_dir, ignore_errors=True)
+        try:
+            os.mkdir(lock_dir)
+        except FileExistsError:
+            return 1  # a run took the lock between the two steps
+        with open(os.path.join(lock_dir, "pid"), "w") as pid_file:
+            pid_file.write(my_pid + "\n")
+        return 0
+
+
+sys.exit(main())

@@ -14,32 +14,14 @@ mkdir -p "$ROOT/logs"
 
 stamp() { date '+%Y-%m-%d %H:%M:%S'; }
 
-# Take the lock with mkdir, which is atomic. If it is held by a run that is gone, recover it under a
-# second lock ($LOCK.recover), so that two invocations can't both clear it and both proceed.
-# The pid is re-read under the recovery lock, so a lock that a recovering run just re-took is left alone.
+# Take the lock with mkdir, which is atomic. If the lock is held, bin/apollo-recover takes it over only
+# when its owner is gone, under an flock that the kernel releases if the recovering process dies.
 acquire_lock() {
     if mkdir "$LOCK" 2>/dev/null; then
         echo "$$" > "$LOCK/pid"
         return 0
     fi
-    # Recovery takes milliseconds. A recovery lock older than 10 minutes was left by a run that was killed
-    # while holding it, so clear it; rmdir only removes an empty directory.
-    if [ -d "$LOCK.recover" ] && [ -n "$(find "$LOCK.recover" -maxdepth 0 -mmin +10 2>/dev/null)" ]; then
-        rmdir "$LOCK.recover" 2>/dev/null || true
-    fi
-    mkdir "$LOCK.recover" 2>/dev/null || return 1
-    pid="$(cat "$LOCK/pid" 2>/dev/null || echo "")"
-    status=1
-    # An empty pid means a run is still writing it, so treat the lock as held rather than stale.
-    if [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then
-        rm -rf "$LOCK"
-        if mkdir "$LOCK" 2>/dev/null; then
-            echo "$$" > "$LOCK/pid"
-            status=0
-        fi
-    fi
-    rmdir "$LOCK.recover"
-    return $status
+    python3 -I "$ROOT/bin/apollo-recover" "$LOCK" "$ROOT/logs/apollo.recover" "$$"
 }
 
 if ! acquire_lock; then
