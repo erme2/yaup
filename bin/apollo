@@ -1,5 +1,5 @@
 #!/bin/sh
-# Runs one apollo pass (skills/apollo/SKILL.md). Started by launchd every 15 minutes, at :02, :17, :32 and :47 (Efesto runs at :00).
+# Runs one apollo pass (skills/apollo/SKILL.md). Started by launchd every 15 minutes, at :02, :17, :32 and :47 (Efesto runs at :00, Dioniso at :30).
 # A run is skipped while an earlier run still holds the lock. Set APOLLO_DRY_RUN=1 to
 # report what would be merged or fixed without changing anything.
 
@@ -27,6 +27,15 @@ fi
 mkdir "$LOCK" || { echo "$(stamp) skipped: could not take lock" >> "$LOG"; exit 0; }
 echo "$$" > "$LOCK/pid"
 trap 'rm -rf "$LOCK"' EXIT INT TERM
+
+# Efesto and Dioniso switch branches in repos/ too: hold their shared checkout lock while this pass runs.
+SHARED_LOCK="$HOME/.yaup/checkouts.lock"
+mkdir -p "$HOME/.yaup"
+if ! mkdir "$SHARED_LOCK" 2>/dev/null; then
+    echo "$(stamp) skipped: a board agent is using the checkouts" >> "$LOG"
+    exit 0
+fi
+trap 'rm -rf "$LOCK" "$SHARED_LOCK"' EXIT INT TERM
 
 if [ "${APOLLO_DRY_RUN:-0}" = "1" ]; then
     mode="DRY RUN: report only, change nothing."

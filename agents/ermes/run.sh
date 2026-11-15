@@ -1,6 +1,6 @@
 #!/bin/bash
 # Ermes, the hourly board agent: unblocks tickets, re-prioritises and refills Next in line on the Sweegly board.
-# Started by ~/Library/LaunchAgents/local.yaup.ermes.plist at :55 past each hour. Logs in ~/.ermes/logs.
+# Started by its crontab line at :50 past each hour. Logs in ~/.ermes/logs.
 set -u
 HERE="$HOME/.ermes"
 WORKSPACE="__WORKSPACE__"

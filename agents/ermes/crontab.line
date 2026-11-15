@@ -1,0 +1,1 @@
+50 * * * * /bin/bash __HOME__/.ermes/run.sh >> __HOME__/.ermes/logs/cron.log 2>&1

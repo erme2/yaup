@@ -1,6 +1,6 @@
 #!/bin/bash
 # Zeus, the hourly deploy agent: checks pane, latte and sweegly for tags newer than dev and deploys them to dev.
-# Started by ~/Library/LaunchAgents/local.yaup.zeus.plist at :10 past each hour. Logs in ~/.zeus/logs.
+# Started by its crontab line at :10 past each hour. Logs in ~/.zeus/logs.
 set -u
 HERE="$HOME/.zeus"
 WORKSPACE="__WORKSPACE__"
