@@ -41,7 +41,11 @@ ALLOWED=(
   "mcp__claude_ai_Figma__whoami" "mcp__claude_ai_Figma__get_figma_skill" "mcp__claude_ai_Figma__create_session" "mcp__claude_ai_Figma__search_design_system" "mcp__claude_ai_Figma__get_libraries" "mcp__claude_ai_Figma__get_design_context" "mcp__claude_ai_Figma__get_screenshot" "mcp__claude_ai_Figma__get_metadata" "mcp__claude_ai_Figma__get_variable_defs" "mcp__claude_ai_Figma__get_code_connect_map" "mcp__claude_ai_Figma__use_figma" "mcp__claude_ai_Figma__get_comments"
 )
 
-claude -p "$(cat "$HERE/prompt.md")" \
+STARTED=$(date +%s)
+RUN_NOTE="Run started at epoch $STARTED. End the last Slack message you send in this run with ' (took Xm Ys)', where the time is the output of date +%s minus $STARTED."
+claude -p "$(cat "$HERE/prompt.md")
+
+$RUN_NOTE" \
   --model claude-opus-5-5 \
   --allowedTools "${ALLOWED[@]}" \
   --output-format json > "$log.json" 2> "$log"

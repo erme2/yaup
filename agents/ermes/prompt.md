@@ -35,8 +35,8 @@ The plan is the board's item order (the order that `gh project item-list 14 --ow
 4. **Refill Next in line, per role.** Do this separately for the backend and the frontend tickets, so that each agent always has a queue. For each role, count the items in Next in line (`41da12d1`) that belong to it. The target is 2 to 4 tickets per role.
    - If a role's count is 2 or more, do nothing for that role.
    - If it is fewer than 2, move tickets of that role from Todo into Next in line, highest priority first (blocking, then high, medium, low, then no label), with board order as the tie-break, until there are 4.
-   - Only move tickets that are open issues, that have none of the labels `status: blocked`, `status: in progress`, `status: in review` or `agent: needs input`, and whose `Depends on` items are all closed or merged.
-   - A ticket with no clear role (a repository outside the lists above, or a `role:` label that conflicts with its repository) is not moved; say so in the summary.
+   - Only move tickets that are open issues, that have none of the labels `status: blocked`, `status: in progress`, `status: in review`, `agent: needs input`, `role: none` or `agent: queue`, and whose `Depends on` items are all closed or merged.
+   - A ticket labelled `role: none` or `agent: queue` is nobody's: never move it, and leave it out of the Efesto and Dioniso lines. A ticket with no clear role (a repository outside the lists above, or a `role:` label that conflicts with its repository) is not moved; say so in the summary.
 
 5. **Don't do anything else.** Never move an item to In Progress, In Review or Done. Never merge, approve, deploy, close issues, create tickets or labels, or touch a checkout. Never pick a ticket for Efesto or Dioniso.
 

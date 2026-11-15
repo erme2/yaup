@@ -52,7 +52,7 @@ Send messages with `mcp__claude_ai_Slack__slack_send_message` to `channel_id` `C
 
 1. First thing in every run, before any other work: `Apollo starting pass`.
 2. Any blocker, sent as soon as it is hit: `Apollo blocked: <repo>#<n> <reason>`.
-3. At the end of every run, a short summary of what it did: `Apollo done: <what was merged, fixed or replied to>`, or `Apollo: nothing to do` when no pull request needed action.
+3. At the end of every run, a short summary of what it did: `Apollo done: <what was merged, fixed or replied to>`, or `Apollo: nothing to do` when no pull request needed action. End the last message of the run with ` (took Xm Ys)`; `bin/apollo` gives you the start time in the prompt.
 
 If a send fails, note it in the log and carry on.
 

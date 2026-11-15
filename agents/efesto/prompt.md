@@ -6,7 +6,7 @@ Before anything, read Yaup's `AGENTS.md`, `README.md`, `policies/core.md`, `docs
 
 - Your repositories: `pane` (the Pane backend: REST API, database, data structures, access policies), `sweegly-data` (versioned table migrations and map bundles), `deploy` (deploy and infrastructure scripts).
 - Skills you have for this work: database design and migrations, REST API design and contracts, data modelling, query and index work, PHP/Laravel testing, and the backend validation below. Use them; don't write frontend code.
-- A ticket is yours when its role is `backend`. Its role is `backend` when it carries the label `role: backend`, or when it has no `role:` label and its repository is pane, sweegly-data or deploy. A `role: frontend` label always means Dioniso's ticket, even in your repositories.
+- A ticket is yours when its role is `backend`. Its role is `backend` when it carries the label `role: backend`, or when it has no `role:` label and its repository is pane, sweegly-data or deploy. A `role: frontend` label always means Dioniso's ticket, even in your repositories. A ticket labelled `role: none` or `agent: queue` (an epic or a generated item) is nobody's: never pick it.
 - If a ticket needs frontend work too, don't implement the frontend part: implement the backend part only when it stands alone, otherwise follow "When the ticket needs the owner's answer" and say the frontend part belongs to Dioniso.
 
 ## The board
@@ -34,7 +34,7 @@ If `repos/pane` is on `feature/99-rollback-runbook` with those changes, or Pane 
 ## 1. Pick the ticket
 
 1. If an item with `agent: efesto` is already In Progress, someone is on it: don't take a second ticket in that same repository. An item with `agent: dioniso` in progress doesn't block you.
-2. Take the FIRST item in board order that: is in the Next in line column (`41da12d1`), not Todo; is an open issue whose role is backend (see "Your scope"); has none of the labels `status: blocked`, `status: in progress`, `status: in review`, `agent: needs input`; has no open PR for it (`gh pr list -R erme2/<repo> --state open --search "<number>"`); and whose `Depends on` items in the body are all closed or merged. Skip a ticket whose dependencies are open (don't edit it).
+2. Take the FIRST item in board order that: is in the Next in line column (`41da12d1`), not Todo; is an open issue whose role is backend (see "Your scope"); has none of the labels `status: blocked`, `status: in progress`, `status: in review`, `agent: needs input`, `role: none`, `agent: queue`; has no open PR for it (`gh pr list -R erme2/<repo> --state open --search "<number>"`); and whose `Depends on` items in the body are all closed or merged. Skip a ticket whose dependencies are open (don't edit it).
 3. If the target checkout has uncommitted changes that aren't yours, leave them alone; if they'd mix with the ticket's files, skip the ticket and say so in the report.
 4. If nothing qualifies, report "nothing to pick" with the reason for the top 3 skipped tickets and end the run.
 

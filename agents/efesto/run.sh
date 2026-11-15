@@ -39,7 +39,11 @@ ALLOWED=(
   "mcp__claude_ai_Slack__slack_send_message"
 )
 
-claude -p "$(cat "$HERE/prompt.md")" \
+STARTED=$(date +%s)
+RUN_NOTE="Run started at epoch $STARTED. End the last Slack message you send in this run with ' (took Xm Ys)', where the time is the output of date +%s minus $STARTED."
+claude -p "$(cat "$HERE/prompt.md")
+
+$RUN_NOTE" \
   --model claude-opus-5-5 \
   --allowedTools "${ALLOWED[@]}" \
   --output-format json > "$log.json" 2> "$log"

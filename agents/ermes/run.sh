@@ -31,7 +31,11 @@ ALLOWED=(
   "mcp__claude_ai_Slack__slack_send_message" "mcp__claude_ai_Slack__slack_read_channel"
 )
 
-PROMPT="$(cat "$HERE/prompt.md")"
+STARTED=$(date +%s)
+RUN_NOTE="Run started at epoch $STARTED. End the last Slack message you send in this run with ' (took Xm Ys)', where the time is the output of date +%s minus $STARTED."
+PROMPT="$(cat "$HERE/prompt.md")
+
+$RUN_NOTE"
 # ERMES_MESSAGE_ONLY=1 sends just the summary message to #sweegly: no board changes, no DMs, no starting line.
 if [ "${ERMES_MESSAGE_ONLY:-0}" = "1" ]; then
   PROMPT="$PROMPT
