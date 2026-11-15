@@ -26,16 +26,18 @@ fi
 
 mkdir "$LOCK" || { echo "$(stamp) skipped: could not take lock" >> "$LOG"; exit 0; }
 echo "$$" > "$LOCK/pid"
-trap 'rm -rf "$LOCK"' EXIT INT TERM
 
 # Efesto and Dioniso switch branches in repos/ too: hold their shared checkout lock while this pass runs.
+# Remove the shared lock only if this run created it, so a skipped run never deletes another agent's lock.
 SHARED_LOCK="$HOME/.yaup/checkouts.lock"
+SHARED_OWNED=0
+trap 'rm -rf "$LOCK"; if [ "$SHARED_OWNED" = 1 ]; then rm -rf "$SHARED_LOCK"; fi' EXIT INT TERM
 mkdir -p "$HOME/.yaup"
 if ! mkdir "$SHARED_LOCK" 2>/dev/null; then
     echo "$(stamp) skipped: a board agent is using the checkouts" >> "$LOG"
     exit 0
 fi
-trap 'rm -rf "$LOCK" "$SHARED_LOCK"' EXIT INT TERM
+SHARED_OWNED=1
 
 if [ "${APOLLO_DRY_RUN:-0}" = "1" ]; then
     mode="DRY RUN: report only, change nothing."
