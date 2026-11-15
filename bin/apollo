@@ -22,6 +22,11 @@ acquire_lock() {
         echo "$$" > "$LOCK/pid"
         return 0
     fi
+    # Recovery takes milliseconds. A recovery lock older than 10 minutes was left by a run that was killed
+    # while holding it, so clear it; rmdir only removes an empty directory.
+    if [ -d "$LOCK.recover" ] && [ -n "$(find "$LOCK.recover" -maxdepth 0 -mmin +10 2>/dev/null)" ]; then
+        rmdir "$LOCK.recover" 2>/dev/null || true
+    fi
     mkdir "$LOCK.recover" 2>/dev/null || return 1
     pid="$(cat "$LOCK/pid" 2>/dev/null || echo "")"
     status=1
