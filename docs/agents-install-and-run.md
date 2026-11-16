@@ -9,15 +9,15 @@ The Claude agents that work the Sweegly board unattended live in `agents/`. This
 | Efesto | Backend developer: REST API, database, data structures. Takes the next backend ticket and runs `just do` | every hour at :00 | `agents/efesto` |
 | Dioniso | Frontend and design developer: UI, components, `.figcraft` files. Takes the next frontend ticket and runs `just do` | every hour at :30 | `agents/dioniso` |
 | Zeus | Deploys new tags of pane, latte and sweegly to dev | every hour at :10 | `agents/zeus` |
-| Ermes | Unblocks, re-prioritises and refills Next in line for both developers | scheduled by the owner's own crontab line, not by the installer | `agents/ermes` |
+| Ermes | Unblocks, re-prioritises and refills Next in line for both developers | every hour at :50 | `agents/ermes` |
 | Crono | Morning digest: the w-next snapshot and the blockers that need the owner | every day at 07:00 | `agents/crono` |
 
-Apollo (the PR merge and fix pass) is separate: `bin/apollo` and `skills/apollo`. Athena (the review agent) is installed by the same installer but scheduled by Codex: her `crontab.line` is a comment, so no launchd job is written for her.
+Apollo (the PR merge and fix pass) is separate: `bin/apollo` and `skills/apollo`.
 
 Each agent folder holds:
 - `prompt.md`: the instructions the agent runs with;
-- `run.sh`: the wrapper launchd starts. It takes a lock, runs `claude -p` with a fixed tool allowlist, and writes logs. It tells the agent when the run started, and the agent ends its last Slack message with `(took Xm Ys)`;
-- `crontab.line`: the schedule, in crontab notation (minute, hour, then `* * *`). The installer turns it into a launchd job.
+- `run.sh`: the wrapper cron starts. It takes a lock, runs `claude -p` with a fixed tool allowlist, and writes logs;
+- `crontab.line`: the schedule as one crontab line.
 
 Files contain placeholders (`__WORKSPACE__`, `__HOME__`, `__SLACK_OWNER_DM__`, `__SLACK_CHANNEL__`). The installer fills them in.
 
@@ -50,7 +50,7 @@ On the machine that runs the agents:
    AGENTS_DRY_RUN=1 AGENTS_OUT=/tmp/agents-preview agents/install.sh all
    ```
 
-   Check the rendered files, including each `local.yaup.<name>.plist`, and that no `__…__` placeholders are left in the rendered prompts.
+   Check the printed crontab lines and that no `__…__` placeholders are left in the rendered prompts.
 
 3. Install one agent or all of them:
 
@@ -61,17 +61,17 @@ On the machine that runs the agents:
 
    The installer:
    - copies the rendered `prompt.md` and `run.sh` into `~/.<name>/` and creates `~/.<name>/logs/`;
-   - writes the agent's launchd job, `~/Library/LaunchAgents/local.yaup.<name>.plist`, from its `crontab.line`, and loads it in your logged-in session;
-   - removes the agent's block from your crontab, if it has one from the cron setup.
+   - writes the agent's schedule into your crontab, inside a marked block (`# >>> yaup agent: <name>` … `# <<< yaup agent: <name>`). It replaces only that block and leaves other crontab lines alone;
+   - removes the agent's old launchd job, if it had one from an earlier setup.
 
-Re-running the installer is safe. It replaces each agent's job and copies the current files. Changes to a prompt take effect from the next run, because each run reads `~/.<name>/prompt.md` when it starts.
+Re-running the installer is safe. It replaces each agent's block and copies the current files. Changes to a prompt take effect from the next run, because each run reads `~/.<name>/prompt.md` when it starts.
 
 ## Check the schedule
 
 ```sh
-launchctl list | grep local.yaup   # the loaded jobs
-tail -n 50 ~/.efesto/logs/launchd.log
-ls -t ~/.efesto/logs | head        # one log per run, newest first
+crontab -l                       # the yaup blocks are in here
+tail -n 50 ~/.efesto/logs/cron.log
+ls -t ~/.efesto/logs | head      # one log per run, newest first
 ```
 
 Use the same commands with `dioniso`, `zeus`, `ermes` or `crono`.
@@ -88,12 +88,10 @@ It takes the same lock as its scheduled runs, so it's skipped if another run of 
 
 ## Stop or remove an agent
 
-Pause one agent by unloading its launchd job. To remove it, also delete the plist and its folder:
+Pause one agent by deleting its block from the crontab. Remove everything from the crontab for that agent, then save:
 
 ```sh
-launchctl bootout gui/$(id -u)/local.yaup.ermes
-rm ~/Library/LaunchAgents/local.yaup.ermes.plist   # to remove it for good
-rm -rf ~/.ermes                                    # its installed files and logs
+crontab -l | awk '/^# >>> yaup agent: ermes$/{skip=1;next} /^# <<< yaup agent: ermes$/{skip=0;next} !skip' | crontab -
 ```
 
 To run it again, reinstall it with `agents/install.sh ermes`.
@@ -111,7 +109,7 @@ rmdir ~/.ermes/run.lock                           # likewise ~/.<name>/run.lock 
 Each run writes:
 - `~/.<name>/logs/<date>_<time>.log`: the run's own log, with the final report at the end;
 - `~/.<name>/logs/<date>_<time>.log.json`: the raw JSON output of `claude -p`;
-- `~/.<name>/logs/launchd.log`: anything launchd itself captured from the runner;
+- `~/.<name>/logs/cron.log`: anything cron itself printed;
 - `~/.<name>/logs/skipped.log`: runs that were skipped because the lock was held or the workspace was not mounted.
 
 ## Shared lock
@@ -120,14 +118,14 @@ Efesto, Dioniso and Apollo all switch branches in `repos/`, so they share one lo
 
 ## Mac notes
 
-- **Why launchd, not cron.** The agents ran on cron on 15 Nov and, from about 22:00, every run failed: `gh`'s token read as invalid and the Slack connector was missing. cron runs outside your login session and can't rely on the keychain logins. launchd runs inside it, so the jobs use the same logins as your terminal. This is the likely cause, not a proven one; confirm with the first scheduled run after an install.
-- **Sleep.** launchd runs a job that was missed during sleep when the Mac wakes. A Mac that is logged out or powered off runs nothing.
-- **Full Disk Access.** If the workspace is on an external volume such as `/Volumes/code`, the runs need access to it. If a run can't read the repositories, grant `/bin/bash` Full Disk Access in System Settings → Privacy & Security.
+- **Sleep.** cron doesn't run jobs that were missed while the Mac was asleep. Launchd did run them on wake. If the Mac is often asleep at :00, the hourly runs will be missed.
+- **Full Disk Access.** If the workspace is on an external volume such as `/Volumes/code`, grant Full Disk Access to `cron` in System Settings → Privacy & Security, or the runs can't read the repositories.
+- **Keychain.** The Claude CLI keeps its login in the macOS keychain. Check that a scheduled run can use it: add a temporary crontab line for `claude -p "say ok"` a minute ahead, then read `~/.<name>/logs/cron.log`. If it fails with an authentication error, the agents need launchd or another login arrangement.
 - **Notifications.** `run.sh` posts a macOS notification at the end of each run. These can be silent under cron; the Slack messages are the reliable record.
 
 ## Raspberry Pi (later)
 
-The installer now writes launchd jobs, so it is macOS-only. A Raspberry Pi would need a cron or systemd variant of the installer, which isn't written yet. The `crontab.line` files already hold the schedules it would use.
+The same installer works on a Raspberry Pi running Raspberry Pi OS Lite (64-bit), with cron and the same tools installed. Clone the repository, create the config, and run `agents/install.sh all`. The Keychain and notification notes don't apply there. A container image would make the setup portable, but it isn't built yet.
 
 ## Changing an agent
 

@@ -44,15 +44,3 @@ Change labels, columns, comments, issues, pull requests or repositories. Answer 
 ## Final report
 
 Your final message is the report, kept short: the snapshot counts (merged, blocked, in progress or in review, next), how many blockers you sent, and anything you could not read or send.
-
-## Slack fallback
-
-If the Slack send tool is not available in this session, send the same message with the helper, from the shell, instead of skipping it. Use `channel` for the #sweegly channel and `dm` for the owner's DM:
-
-```
-python3 __WORKSPACE__/agents/lib/slack_post.py channel <<'MSG'
-<the message text>
-MSG
-```
-
-The helper posts as the Yaup agents bot and reads its own token. Never put a token in a message or a command.
