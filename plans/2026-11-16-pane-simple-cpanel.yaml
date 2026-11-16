@@ -1,0 +1,88 @@
+schema_version: 1
+id: 2026-11-16-pane-simple-cpanel
+title: "refactor: reduce Pane and Latte to login, invites and admin-defined dynamic CRUD"
+status: proposed
+
+approval:
+  approved: false
+  approver: null
+  approved_at: null
+  approval_commit: null
+
+context:
+  summary: >
+    Pane stops being a multi-organization control plane for external databases. Each Pane
+    install is one organization with its own users and its own database. Pane keeps WorkOS
+    login, invitations and the maps layer, so admins define tables and field types and get a
+    dynamic REST CRUD that apps such as Sweegly use as their main interface. Latte stays as the
+    cPanel for the same install. Apps and Latte share one REST API and one login/session.
+    Decided by the owner on 2026-11-16 (answers 1-4 in the conversation): admins only by
+    invitation; users by invitation until a boolean setting opens self sign-up; no organization
+    model; the schema may be reset (nothing deployed depends on the current migrations).
+  principle: MVP first; every deferred item is a ticket (see docs in the alpha-pragmatic principle).
+
+scope:
+  included:
+    - Pane keeps WorkOS login and session, the user model, admin and user invitations, the maps layer (maps, fields, validation types, map reader and store, generic CRUD, menu and functions), settings and audit events.
+    - Add a boolean setting (for example `signup_open`, default false) that lets users sign up without an invitation; admins are always by invitation.
+    - Remove the organization model: organizations, memberships, organization invitations and the tenancy service. Each install is the organization; roles become admin and user on the user.
+    - Remove the managed-database stack (managed connections, credential vault and encryption, egress policy, privilege inspector, DNS resolver), map discovery, the application registry, the message queue and worker, and the legacy Story, Action and Mapper API.
+    - Reset the schema into a new, smaller set of migrations (owner approved a reset).
+    - Latte keeps login, admin and user management (invites, members, the sign-up setting), the table and field editor, and generic record list and edit views over the same Pane REST API. Remove organization administration, the Burro console ideas and anything built on the removed Pane parts.
+    - Rewrite docs/architecture.md, api-v1.md and the decision records to match, and mark the old decision as superseded.
+    - Sweegly #20 stores lists as an admin-defined table in Pane; no separate store.
+  excluded:
+    - Any change to sweegly-data, which holds Sweegly's own data model docs.
+    - Deleting a deployed install's data (none exists).
+    - Per-application API keys (apps sign in like any user); revisit by ticket if needed.
+    - Households and groups (Pane #159), web push (#174), declarative actions (#161), named queries (#160): deferred, kept as tickets.
+  cut_order:
+    - "1. Pane: remove managed connections, vault, egress, discovery, application registry, message queue/worker, legacy API."
+    - "2. Pane: remove organizations and memberships, add roles on user, add the sign-up setting, reset migrations."
+    - "3. Latte: remove organization administration and everything depending on removed Pane parts; add sign-up setting and invites screens."
+    - "4. Docs and decision records."
+  tickets:
+    close_as_obsolete:
+      - "pane #66, #68, #70, #74, #162, #117 (re-open if the code remains)"
+      - "Latte #34, #35, #36"
+    review_after_cut:
+      - "pane #75, #95, #159, #160, #161, #172, #173, #174, #175, #130, #133, #51"
+      - "Latte #71, #72, #73"
+    keep:
+      - "pane #157, #158, #169 (done or in flight), #178, #179, #177"
+      - "Latte #70"
+    new_tickets_needed:
+      - "Pane: sign-up setting and invite roles"
+      - "Pane: remove organizations, reset migrations"
+      - "Pane: remove managed-database stack and legacy API"
+      - "Latte: invites, members and sign-up setting screens"
+  files:
+    - repos/pane (app/Services, app/Models, app/Support/ManagedDatabase, app/Http/Controllers, database/migrations, docs)
+    - repos/Latte (src/product, packages/latte-core, docs)
+    - docs and plans in yaup only for this plan
+
+acceptance_criteria:
+  - Pane has no organization, managed-connection, vault, discovery, application-registry, message-queue or legacy-API code, routes, tables or tests.
+  - An admin can be created only by invitation; a user can sign up directly only when the setting is on.
+  - An admin can define a table and its fields, and the dynamic CRUD for it works through the REST API with the same login/session as Latte.
+  - Latte signs in, manages invites and members, edits tables and fields, and lists and edits records against the smaller API.
+  - Pane and Latte test suites, lint and build pass after each cutting PR.
+  - Docs describe only what exists.
+
+verification_plan:
+  - Per cutting PR run Pane's test suite and Latte's npm test, lint and build.
+  - Start Pane and Latte locally, sign in with WorkOS, invite an admin and a user, create a table and fields, and create, list, edit and delete a record from Latte.
+  - Grep for removed names (Organization, ManagedConnection, Vault, Egress, MapDiscovery, ApplicationRegistration, MessageWorker) and confirm no matches.
+
+risks:
+  - Existing open Pane PRs and tickets touch removed code and will conflict; close or rebase them first.
+  - Sweegly #19 and #20 assume the current Pane contract; update their bodies after step 2.
+  - Removing the application registry removes a path to per-app access control; accepted for the MVP.
+
+completion:
+  changes: []
+  validation: []
+  deviations: []
+  next_steps:
+    - Owner reviews this plan, sets the approval fields and commits it.
+    - Then create the new tickets, close the obsolete ones, and have Efesto and Dioniso take the cutting PRs in order.
