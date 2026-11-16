@@ -27,7 +27,7 @@ On the machine that runs the agents:
 - `claude` (Claude Code CLI), logged in as the owner;
 - `gh`, logged in as `erme2`, with access to the repositories;
 - `git`, `node`, `npm`, `php`, `composer`, `python3`, and `docker` if Pane's integration tests should run;
-- the Slack connector available to Claude;
+- the Slack connector available to Claude, or the Slack bot token below (the fallback for runners that have no connector, such as Codex);
 - this repository checked out at the workspace path (`/Volumes/code/yaup` on the Mac), with the checkouts under `repos/`.
 
 ## Install
@@ -43,6 +43,17 @@ On the machine that runs the agents:
    - `WORKSPACE`: the absolute path of this repository;
    - `SLACK_OWNER_DM`: the owner's own Slack DM channel ID (the agents send blockers and digests there);
    - `SLACK_CHANNEL`: the #sweegly channel ID (the run starts and summaries go there).
+
+   **Slack bot token** (needed only for the fallback `agents/lib/slack_post.py`):
+   1. In https://api.slack.com/apps open (or create) the Yaup agents app and give its bot token the scopes `chat:write`, `im:write` (to open the owner's DM) and `channels:read`; reinstall the app to the workspace if Slack asks.
+   2. In App Home, turn on the Messages tab so the bot can DM you.
+   3. Invite the bot to the #sweegly channel (`/invite @yaup_agents`).
+   4. Save the bot token (starts with `xoxb-`) outside the repository:
+
+      ```sh
+      printf '%s' 'xoxb-...' > ~/.config/yaup/slack-token && chmod 600 ~/.config/yaup/slack-token
+      ```
+   5. Check it: `echo "Yaup Slack check" | python3 agents/lib/slack_post.py dm`. It prints `sent to dm`. If the token file or `agents.env` is missing or empty, it stops with a message naming the file; Slack errors are printed as `slack <method> failed: <error>`.
 
 2. Preview the rendered files without installing anything:
 

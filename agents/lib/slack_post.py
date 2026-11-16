@@ -43,8 +43,13 @@ def call(method, token, params):
 def main():
     if len(sys.argv) != 2 or sys.argv[1] not in ("dm", "channel"):
         raise SystemExit("usage: slack_post.py <dm|channel> < message.txt")
+    for path in (TOKEN_FILE, CONFIG_FILE):
+        if not os.path.isfile(path):
+            raise SystemExit("missing " + path + ": see 'Slack bot token' in docs/agents-install-and-run.md")
     with open(TOKEN_FILE) as handle:
         token = handle.read().strip()
+    if not token:
+        raise SystemExit(TOKEN_FILE + " is empty: see 'Slack bot token' in docs/agents-install-and-run.md")
     text = sys.stdin.read().strip()
     if not text:
         raise SystemExit("empty message")
