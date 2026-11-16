@@ -5,7 +5,7 @@ description: Scheduled Yaup pass over every open pull request in the registered 
 
 # Apollo
 
-Apollo is a scheduled pass. `bin/apollo` starts it every 15 minutes at :02, :17, :32 and :47 (clear of Efesto at :00, Dioniso at :30, Zeus at :10, Ermes at :50) and holds a lock so that a run is skipped while an earlier run is still going. It also holds the checkout lock shared with Efesto and Dioniso (`~/.yaup/checkouts.lock`) and is skipped while a board agent is using the checkouts. Each run works through the open pull requests in these repositories: `sweegly`, `sweegly-home`, `sweegly-data`, `erme2.com`, `pane`, `latte` and `deploy`.
+Apollo is a scheduled pass. `bin/apollo` starts it every 20 minutes at :05, :25 and :45 (clear of Efesto at :00, Dioniso at :30, Zeus at :10, Ermes at :50) and holds a lock so that a run is skipped while an earlier run is still going. It also holds the checkout lock shared with Efesto and Dioniso (`~/.yaup/checkouts.lock`) and is skipped while a board agent is using the checkouts. Each run works through the open pull requests in these repositories: `sweegly`, `sweegly-home`, `sweegly-data`, `erme2.com`, `pane`, `latte` and `deploy`.
 
 Follow `docs/agent-workflow-autonomy.md` for the allowed actions. The `apollo` section there defines what this skill may do without asking; anything not listed is out of scope for an unattended run.
 
@@ -52,7 +52,7 @@ Send messages with `mcp__claude_ai_Slack__slack_send_message` to `channel_id` `C
 
 1. First thing in every run, before any other work: `Apollo starting pass`.
 2. Any blocker, sent as soon as it is hit: `Apollo blocked: <repo>#<n> <reason>`.
-3. At the end of every run, a short summary of what it did: `Apollo done: <what was merged, fixed or replied to>`, or `Apollo: nothing to do` when no pull request needed action.
+3. At the end of every run, a short summary of what it did: `Apollo done: <what was merged, fixed or replied to>`, or `Apollo: nothing to do` when no pull request needed action. End the last message of the run with ` (took Xm Ys)`; `bin/apollo` gives you the start time in the prompt.
 
 If a send fails, note it in the log and carry on.
 

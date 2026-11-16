@@ -7,6 +7,8 @@ WORKSPACE="__WORKSPACE__"
 LOGS="$HERE/logs"
 LOCK="$HERE/run.lock"
 export PATH="$HOME/.local/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+# Claude login under cron: the long-lived token from setup-token, in a 600 file outside the repo.
+if [ -r "$HOME/.config/yaup/claude-token" ]; then export CLAUDE_CODE_OAUTH_TOKEN="$(cat "$HOME/.config/yaup/claude-token")"; fi
 mkdir -p "$LOGS"
 stamp=$(date +%Y-%m-%d_%H%M)
 log="$LOGS/$stamp.log"
@@ -31,7 +33,21 @@ ALLOWED=(
   "mcp__claude_ai_Slack__slack_send_message" "mcp__claude_ai_Slack__slack_read_channel"
 )
 
-claude -p "$(cat "$HERE/prompt.md")" \
+STARTED=$(date +%s)
+RUN_NOTE="Run started at epoch $STARTED. End the last Slack message you send in this run with ' (took Xm Ys)', where the time is the output of date +%s minus $STARTED."
+PROMPT="$(cat "$HERE/prompt.md")
+
+$RUN_NOTE"
+# ERMES_MESSAGE_ONLY=1 sends just the summary message to #sweegly: no board changes, no DMs, no starting line.
+if [ "${ERMES_MESSAGE_ONLY:-0}" = "1" ]; then
+  PROMPT="$PROMPT
+
+## This run: message only
+
+Skip steps 2a, 2, 3 and 4, the starting line, every DM and every board change. Read the board once, work out the summary message of Slack item 3 from the current state (the Ermes bullet says \`no changes (message-only run)\`), send only that one message to #sweegly, and report in one line."
+fi
+
+claude -p "$PROMPT" \
   --model claude-opus-5-5 \
   --allowedTools "${ALLOWED[@]}" \
   --output-format json > "$log.json" 2> "$log"

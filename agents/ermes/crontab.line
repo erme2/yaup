@@ -1,1 +1,1 @@
-50 * * * * /bin/bash __HOME__/.ermes/run.sh >> __HOME__/.ermes/logs/cron.log 2>&1
+# Ermes is scheduled outside launchd (the owner's own crontab line, which reads its GitHub token from the keychain). The installer only copies her files.

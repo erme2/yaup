@@ -7,6 +7,8 @@ WORKSPACE="__WORKSPACE__"
 LOGS="$HERE/logs"
 LOCK="$HERE/run.lock"
 export PATH="$HOME/.local/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+# Claude login under cron: the long-lived token from setup-token, in a 600 file outside the repo.
+if [ -r "$HOME/.config/yaup/claude-token" ]; then export CLAUDE_CODE_OAUTH_TOKEN="$(cat "$HOME/.config/yaup/claude-token")"; fi
 mkdir -p "$LOGS"
 stamp=$(date +%Y-%m-%d_%H%M)
 log="$LOGS/$stamp.log"
@@ -31,7 +33,11 @@ ALLOWED=(
   "mcp__claude_ai_Slack__slack_send_message" "mcp__claude_ai_Slack__slack_read_channel"
 )
 
-claude -p "$(cat "$HERE/prompt.md")" \
+STARTED=$(date +%s)
+RUN_NOTE="Run started at epoch $STARTED. End the last Slack message you send in this run with ' (took Xm Ys)', where the time is the output of date +%s minus $STARTED."
+claude -p "$(cat "$HERE/prompt.md")
+
+$RUN_NOTE" \
   --model claude-opus-5-5 \
   --allowedTools "${ALLOWED[@]}" \
   --output-format json > "$log.json" 2> "$log"
