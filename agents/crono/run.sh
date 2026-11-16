@@ -38,7 +38,7 @@ RUN_NOTE="Run started at epoch $STARTED. End the last Slack message you send in 
 claude -p "$(cat "$HERE/prompt.md")
 
 $RUN_NOTE" \
-  --model claude-opus-5-5 \
+  --model claude-sonnet-5-5 --effort medium \
   --allowedTools "${ALLOWED[@]}" \
   --output-format json > "$log.json" 2> "$log"
 status=$?

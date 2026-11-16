@@ -48,7 +48,7 @@ Skip steps 2a, 2, 3 and 4, the starting line, every DM and every board change. R
 fi
 
 claude -p "$PROMPT" \
-  --model claude-opus-5-5 \
+  --model claude-sonnet-5-5 --effort medium \
   --allowedTools "${ALLOWED[@]}" \
   --output-format json > "$log.json" 2> "$log"
 status=$?
