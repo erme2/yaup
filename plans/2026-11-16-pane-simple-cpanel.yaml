@@ -1,13 +1,13 @@
 schema_version: 1
 id: 2026-11-16-pane-simple-cpanel
 title: "refactor: reduce Pane and Latte to login, invites and admin-defined dynamic CRUD"
-status: proposed
+status: approved
 
 approval:
-  approved: false
-  approver: null
-  approved_at: null
-  approval_commit: null
+  approved: true
+  approver: erme2
+  approved_at: 2026-11-16
+  approval_commit: 7849ee9
 
 context:
   summary: >
@@ -84,5 +84,5 @@ completion:
   validation: []
   deviations: []
   next_steps:
-    - Owner reviews this plan, sets the approval fields and commits it.
+    - Owner approved in conversation on 2026-11-16 ("You can proceed with this plan"); fields set by Claude on that instruction.
     - Then create the new tickets, close the obsolete ones, and have Efesto and Dioniso take the cutting PRs in order.
