@@ -1,5 +1,5 @@
 #!/bin/sh
-# Runs one apollo pass (skills/apollo/SKILL.md). Started by launchd every 15 minutes, at :02, :17, :32 and :47 (Efesto runs at :00, Dioniso at :30).
+# Runs one apollo pass (skills/apollo/SKILL.md). Started by launchd every 20 minutes, at :05, :25 and :45 (Efesto runs at :00, Dioniso at :30, Ermes at :50).
 # A run is skipped while an earlier run still holds the lock. Set APOLLO_DRY_RUN=1 to
 # report what would be merged or fixed without changing anything.
 

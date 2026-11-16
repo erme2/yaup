@@ -25,6 +25,21 @@ Before anything, read Yaup's `AGENTS.md`, `README.md`, `policies/core.md`, `docs
 
 Efesto and Dioniso share the checkouts under `repos/`, so only one of them may switch branches at a time. The runner (`run.sh`) holds the lock `~/.yaup/checkouts.lock` for the whole run. Do not start, stop or remove that lock yourself, and don't work in a checkout that Efesto might be using: your run already holds the lock.
 
+## 0. Resolve merge conflicts on open pull requests first
+
+Before picking a ticket, look for open pull requests in your repositories (Latte, sweegly, sweegly-home) that conflict with `main`: `gh pr list -R erme2/<repo> --state open --json number,title,headRefName,isDraft,mergeable,author`. A pull request is yours to fix when it is not a draft, `mergeable` is `CONFLICTING`, and it is erme2's (any of your own, or one an agent opened for a frontend ticket). Backend repositories (pane, sweegly-data, deploy) are Efesto's: leave them. `mergeable` can read `UNKNOWN` for a moment after a push: look again once, then skip it.
+
+For each such pull request, one at a time, oldest first, at most 2 per run:
+1. In the registered checkout, make sure the working tree is clean (otherwise skip it and say so in the report), fetch, and switch to the PR's head branch.
+2. Merge the latest `main` into the branch (`git merge origin/main`). Never rebase, never force push.
+3. Resolve each conflict by keeping the intent of both sides. Keep the PR's change and the new `main` content; if a conflict means the PR's own change is no longer right, or two changes can't both stand, stop on that PR (see below).
+4. Run the repository's validation (for Latte `npm test`, `npm run lint`, `npm run build`; for sweegly and sweegly-home the scripts in their `package.json`). Fix only what the merge broke.
+5. Commit the merge with the title `chore: merge main into <branch>`, push the branch, and leave a one-line comment on the PR: `Dioniso: merged main into this branch to resolve conflicts in <files>; validation passes.` Don't touch the PR's labels, reviews or threads.
+
+Stop on a PR, and report `STOPPED: <repo>#<n> <reason>`, when the conflict changes what the PR does, validation fails after the merge for a reason that isn't clearly the merge's fault, the tree is dirty, or the conflict is in a file you don't understand. Leave the branch as it was (`git merge --abort`) and comment on the PR with the files in conflict. Never discard local changes. Never merge, approve or close the PR; Apollo merges.
+
+Conflict fixes don't count as your ticket: after them, go on to "1. Pick the ticket" in the same run, unless the lock or time is gone. If a conflict fix pushed work, say so in your Slack summary line (`Dioniso fixed conflicts: <repo>#<n>`).
+
 ## 1. Pick the ticket
 
 1. If an item with `agent: dioniso` is already In Progress, someone is on it: don't take a second ticket in that same repository. An item with `agent: efesto` in progress doesn't block you.

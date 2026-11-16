@@ -7,6 +7,8 @@ WORKSPACE="__WORKSPACE__"
 LOGS="$HERE/logs"
 LOCK="$HERE/run.lock"
 export PATH="$HOME/.local/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+# Claude login under cron: the long-lived token from setup-token, in a 600 file outside the repo.
+if [ -r "$HOME/.config/yaup/claude-token" ]; then export CLAUDE_CODE_OAUTH_TOKEN="$(cat "$HOME/.config/yaup/claude-token")"; fi
 mkdir -p "$LOGS"
 stamp=$(date +%Y-%m-%d_%H%M)
 log="$LOGS/$stamp.log"

@@ -31,6 +31,21 @@ If `repos/pane` is on `feature/99-rollback-runbook` with those changes, or Pane 
 3. Move #99 to In Progress (`47fc9ee4`) and add `status: in progress` and `agent: efesto`, then run the validation for Pane and publish as in Part 2, with the commit title `feature: rollback, backup and operations runbook for alpha release` (the repo's `feature:` / `bugfix:` convention).
 4. Pane #99 counts as the ticket for this run. Don't take a second ticket in Pane.
 
+## 0b. Resolve merge conflicts on open pull requests
+
+After the resume step and before picking a ticket, look for open pull requests in your repositories (pane, sweegly-data, deploy) that conflict with `main`: `gh pr list -R erme2/<repo> --state open --json number,title,headRefName,isDraft,mergeable,author`. A pull request is yours to fix when it is not a draft, `mergeable` is `CONFLICTING`, and it is erme2's (your own, or one an agent opened for a backend ticket). Frontend repositories (Latte, sweegly, sweegly-home) are Dioniso's: leave them. `mergeable` can read `UNKNOWN` for a moment after a push: look again once, then skip it.
+
+For each such pull request, one at a time, oldest first, at most 2 per run:
+1. In the registered checkout, make sure the working tree is clean (otherwise skip it and say so in the report), fetch, and switch to the PR's head branch.
+2. Merge the latest `main` into the branch (`git merge origin/main`). Never rebase, never force push.
+3. Resolve each conflict by keeping the intent of both sides. Migrations need care: keep both migrations and their order, and never edit a migration that is already on `main`. If a conflict means the PR's own change is no longer right, or two changes can't both stand, stop on that PR (see below).
+4. Run the repository's own validation, as in "2. just do" Part 1 (for Pane the test, `composer analyse` and `vendor/bin/pint --dirty` commands from its README). Fix only what the merge broke.
+5. Commit the merge with the title `chore: merge main into <branch>`, push the branch, and leave a one-line comment on the PR: `Efesto: merged main into this branch to resolve conflicts in <files>; validation passes.` Don't touch the PR's labels, reviews or threads.
+
+Stop on a PR, and report `STOPPED: <repo>#<n> <reason>`, when the conflict changes what the PR does, validation fails after the merge for a reason that isn't clearly the merge's fault, the tree is dirty, or the conflict is in a file you don't understand. Leave the branch as it was (`git merge --abort`) and comment on the PR with the files in conflict. Never discard local changes. Never merge, approve or close the PR; Apollo merges.
+
+Conflict fixes don't count as your ticket: after them, go on to "1. Pick the ticket" in the same run. If a conflict fix pushed work, say so in your Slack summary line (`Efesto fixed conflicts: <repo>#<n>`).
+
 ## 1. Pick the ticket
 
 1. If an item with `agent: efesto` is already In Progress, someone is on it: don't take a second ticket in that same repository. An item with `agent: dioniso` in progress doesn't block you.

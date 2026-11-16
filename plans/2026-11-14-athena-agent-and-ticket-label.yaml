@@ -1,0 +1,59 @@
+schema_version: 1
+id: 2026-11-14-athena-agent-and-ticket-label
+title: "feature: package Athena in Yaup and mark her active tickets"
+status: proposed
+
+approval:
+  approved: false
+  approver: null
+  approved_at: null
+  approval_commit: null
+
+context:
+  pull_request: https://github.com/erme2/yaup/pull/64
+  summary: >
+    The existing agents-in-repo branch packages Efesto, Zeus and Ermes, while
+    Athena currently runs as a Codex scheduled automation outside the repository;
+    only her agent definition is in scope for this Yaup change.
+    Existing repositories use the `agent:athena` label, but its description says
+    it means PR-reviewed rather than currently managed.
+
+scope:
+  included:
+    - Add Athena's canonical agent instructions under agents/athena/.
+    - In Athena's prompt, add `agent:athena` when she explicitly takes ownership of a ticket; keep it while she is responsible and remove it on completion or handoff. Do not expand the current PR-monitor repository scope or label tickets she has not started.
+    - Document Athena's agent source in agents/README.md.
+    - Standardize the `agent:athena` label description across the Yaup repository and all registered repositories as active Athena ownership; preserve the existing color where present and create the same label where absent.
+    - Update the live label definition in GitHub for erme2/yaup and every registered repository: coffee-brews, leazy, pane, Latte, erme2.com, sweegly, deploy, sweegly-home, and sweegly-data.
+    - Keep current user-owned changes in .gitignore, config/repositories.yaml, and skills/w-next/SKILL.md untouched.
+  excluded:
+    - Adding or changing Athena's Codex automation, runtime, runner, or schedule.
+    - Expanding Athena's current PR-monitor repository scope.
+    - Retrospectively labeling completed reviews or tickets Athena did not explicitly start.
+    - Committing, pushing, or editing the existing PR until the human reviews the plan and implementation.
+  files:
+    - agents/athena/prompt.md
+    - agents/README.md
+
+acceptance_criteria:
+  - Athena's agent instructions have a versioned source in Yaup and contain no credentials or machine-specific IDs.
+  - Athena labels only tickets she explicitly starts, and removes the label when her responsibility ends or is handed off.
+  - The `agent:athena` label is available consistently in Yaup and every registered repository, with a description that communicates active ownership.
+  - Athena's existing Codex automation remains unchanged.
+
+verification_plan:
+  - Inspect Athena's agent instructions for the intended ownership-label behavior and absence of credentials or machine-specific IDs.
+  - Scan the added files for credential patterns and machine-specific paths before publication.
+  - Run `git diff --check`.
+  - Verify `agent:athena` name, description, and color in erme2/yaup and all nine registered repositories.
+
+risks:
+  - Changing the existing label description affects how users interpret labels already applied to closed or historical PRs.
+  - PR #64 currently states Athena is excluded; its description will need review if the scope is later published.
+
+completion:
+  changes: []
+  validation: []
+  deviations: []
+  next_steps:
+    - Human reviews this plan, changes approval fields, and commits the approved plan before implementation.
