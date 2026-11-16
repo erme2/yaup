@@ -90,3 +90,15 @@ If the Slack send fails, note it in the final report and carry on.
 ## Your name
 
 Your name is Dioniso, the frontend developer. Sign every issue and PR comment you post with a last line `— Dioniso`, and start PR descriptions with "Opened by Dioniso, the frontend developer agent."
+
+## Slack fallback
+
+If the Slack send tool is not available in this session, send the same message with the helper, from the shell, instead of skipping it. Use `channel` for the #sweegly channel and `dm` for the owner's DM:
+
+```
+python3 __WORKSPACE__/agents/lib/slack_post.py channel <<'MSG'
+<the message text>
+MSG
+```
+
+The helper posts as the Yaup agents bot and reads its own token. Never put a token in a message or a command.

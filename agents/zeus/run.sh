@@ -28,7 +28,7 @@ cd "$WORKSPACE" || exit 1
 
 ALLOWED=(
   Read Glob Grep
-  "Bash(gh:*)" "Bash(curl:*)" "Bash(jq:*)" "Bash(sort:*)" "Bash(grep:*)" "Bash(sed:*)"
+  "Bash(gh:*)" "Bash(curl:*)" "Bash(python3:*)" "Bash(jq:*)" "Bash(sort:*)" "Bash(grep:*)" "Bash(sed:*)"
   "Bash(sleep:*)" "Bash(date:*)" "Bash(echo:*)" "Bash(printf:*)" "Bash(test:*)" "Bash(head:*)" "Bash(tail:*)"
   "mcp__claude_ai_Slack__slack_send_message"
 )

@@ -9,8 +9,9 @@ The Claude agents that run unattended on the owner's Mac, kept here so they can 
 | Zeus | Deploys new tags of pane, latte and sweegly to dev | every hour at :10 | `agents/zeus` |
 | Ermes | Unblocks, re-prioritises and refills Next in line for both developers | every hour at :50 | `agents/ermes` |
 | Crono | Morning digest: sends the w-next snapshot and the blockers that need the owner, with a prompt for each | every day at 07:00 | `agents/crono` |
+| Athena | Independent PR reviewer: reviews open PRs in the registered repos, posts findings, never fixes | every 30 minutes, scheduled by Codex | `agents/athena` |
 
-Apollo (PR merge and fix pass) lives in `bin/apollo` and `skills/apollo`. Athena (Codex review agent) is set up separately.
+Apollo (PR merge and fix pass) lives in `bin/apollo` and `skills/apollo`. Athena's prompt and runner live in `agents/athena/`; Codex schedules her, so the installer only copies her files.
 
 Efesto and Dioniso both use the `just do` skill. They share the checkouts under `repos/`, so their runners and Apollo hold one lock, `~/.yaup/checkouts.lock`: only one of them switches branches at a time. A run that finds the lock held is skipped, so a long ticket delays the next developer's run rather than colliding with it. A ticket belongs to a developer by its `role:` label (`role: backend` or `role: frontend`), or else by its repository.
 

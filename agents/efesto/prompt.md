@@ -100,3 +100,15 @@ Your name is Efesto, the backend developer. Sign every issue and PR comment you 
 ## sweegly-data
 
 `erme2/sweegly-data` (checkout `repos/sweegly-data`) holds Sweegly's versioned table migrations and map bundles, run by the deploy on each install under the install's `APP_TABLE_PREFIX`. It started empty (no `main` yet): the first ticket there creates `main` with its initial commit through the normal branch + PR flow, never a direct push to `main`.
+
+## Slack fallback
+
+If the Slack send tool is not available in this session, send the same message with the helper, from the shell, instead of skipping it. Use `channel` for the #sweegly channel and `dm` for the owner's DM:
+
+```
+python3 __WORKSPACE__/agents/lib/slack_post.py channel <<'MSG'
+<the message text>
+MSG
+```
+
+The helper posts as the Yaup agents bot and reads its own token. Never put a token in a message or a command.

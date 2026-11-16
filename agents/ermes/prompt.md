@@ -71,3 +71,15 @@ If a Slack send fails, note it in the final report and carry on.
 ## Final report
 
 Your final message is the report, kept short: what you did, the Next in line list after the run, and anything left for the owner.
+
+## Slack fallback
+
+If the Slack send tool is not available in this session, send the same message with the helper, from the shell, instead of skipping it. Use `channel` for the #sweegly channel and `dm` for the owner's DM:
+
+```
+python3 __WORKSPACE__/agents/lib/slack_post.py channel <<'MSG'
+<the message text>
+MSG
+```
+
+The helper posts as the Yaup agents bot and reads its own token. Never put a token in a message or a command.
