@@ -18,3 +18,12 @@ repositories:
   - name: sweegly
     path: /Volumes/code/yaup/repos/sweegly
     remote: 'git@github.com:erme2/sweegly.git'
+  - name: deploy
+    path: /Volumes/code/yaup/repos/deploy
+    remote: 'git@github.com:erme2/deploy.git'
+  - name: sweegly-home
+    path: /Volumes/code/yaup/repos/sweegly-home
+    remote: 'git@github.com:erme2/sweegly-home.git'
+  - name: sweegly-data
+    path: /Volumes/code/yaup/repos/sweegly-data
+    remote: 'git@github.com:erme2/sweegly-data.git'
