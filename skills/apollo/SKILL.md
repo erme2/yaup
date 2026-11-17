@@ -54,6 +54,16 @@ Send messages with `mcp__claude_ai_Slack__slack_send_message` to `channel_id` `C
 2. Any blocker, sent as soon as it is hit: `Apollo blocked: <repo>#<n> <reason>`.
 3. At the end of every run, a short summary of what it did: `Apollo done: <what was merged, fixed or replied to>`, or `Apollo: nothing to do` when no pull request needed action. End the last message of the run with ` (took Xm Ys)`; `bin/apollo` gives you the start time in the prompt.
 
+If the Slack send tool is not available in this session, send the same message from the shell with the helper instead of skipping it:
+
+```
+python3 /Volumes/code/yaup/agents/lib/slack_post.py channel <<'MSG'
+<the message text>
+MSG
+```
+
+The helper posts as the Yaup agents bot and reads its own token. Never put a token in a message, a log or a file.
+
 If a send fails, note it in the log and carry on.
 
 ## Boundaries

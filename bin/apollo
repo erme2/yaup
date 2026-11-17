@@ -56,7 +56,7 @@ RUN_NOTE="Run started at epoch $STARTED. End the last Slack message you send in 
     --model claude-sonnet-5-5 --effort medium \
     --allowedTools "Read" "Edit" "Write" "Grep" "Glob" \
         "Bash(gh:*)" "Bash(git:*)" "Bash(php:*)" "Bash(composer:*)" "Bash(npm:*)" "Bash(npx:*)" "Bash(node:*)" \
-        "Bash(date:*)" "Bash(ls:*)" "Bash(cat:*)" "Bash(tail:*)" \
+        "Bash(python3:*)" "Bash(date:*)" "Bash(ls:*)" "Bash(cat:*)" "Bash(tail:*)" \
         "mcp__claude_ai_Slack__slack_send_message" \
     >> "$LOG" 2>&1
 status=$?

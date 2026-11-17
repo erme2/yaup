@@ -38,6 +38,7 @@ ALLOWED=(
   "Bash(wc:*)" "Bash(sort:*)" "Bash(diff:*)" "Bash(jq:*)" "Bash(mkdir:*)" "Bash(cp:*)" "Bash(mv:*)"
   "Bash(touch:*)" "Bash(echo:*)" "Bash(printf:*)" "Bash(test:*)" "Bash(cd:*)" "Bash(pwd)" "Bash(date:*)"
   "Bash(export:*)" "Bash(sleep:*)"
+  "Bash(dbmate:*)" "Bash(bin/migrate:*)" "Bash(tests/*)" "Bash(bash tests/*)"
   "mcp__claude_ai_Slack__slack_send_message"
 )
 
