@@ -6,7 +6,7 @@ The Claude agents that work the Sweegly board unattended live in `agents/`. This
 
 | Agent | Job | Schedule | Folder |
 |---|---|---|---|
-| Efesto | Backend developer: REST API, database, data structures. Takes the next backend ticket and runs `just do` | every hour at :00 | `agents/efesto` |
+| Efesto | Backend developer: REST API, database, data structures. Takes the next backend ticket and runs `just do` | twice an hour, at :00 and :30 (Dioniso is paused) | `agents/efesto` |
 | Dioniso | Frontend and design developer: UI, components, `.figcraft` files. Takes the next frontend ticket and runs `just do` | every hour at :30 | `agents/dioniso` |
 | Zeus | Deploys new tags of pane, latte and sweegly to dev | every hour at :10 | `agents/zeus` |
 | Ermes | Unblocks, re-prioritises and refills Next in line for both developers | scheduled by the owner's own crontab line, not by the installer | `agents/ermes` |
