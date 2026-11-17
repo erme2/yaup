@@ -3,8 +3,9 @@
 
 Prints Markdown with four groups from a GitHub project board:
 recently merged PRs (green), blocked tickets (red), tickets in progress or in
-review (black), and the next tickets to pick up (blue): unblocked Todo items in
-board order, which follows the plan, or by priority label with --sort priority.
+review (black), the queue the agents pick from (blue): the "Next in line" column,
+and the next Todo items to queue (white), in board order, which follows the plan,
+or by priority label with --sort priority.
 
 Usage: w-next.py [--owner erme2] [--project 14] [--merged 5] [--next 4] [--sort board|priority]
 """
@@ -74,8 +75,10 @@ def main():
 
     blocked = [i for i in open_items if is_blocked(i)]
     working = [i for i in open_items if i["status"] in ("In Progress", "In Review") and not is_blocked(i)]
+    queue = [i for i in open_items if i["status"] == "Next in line" and not is_blocked(i)]
     todo = [i for i in open_items if i["status"] == "Todo" and not is_blocked(i)]
     if args.sort == "priority":
+        queue.sort(key=lambda i: (priority(i["labels"]), i["position"]))
         todo.sort(key=lambda i: (priority(i["labels"]), i["position"]))
 
     def line(emoji, item, extra=""):
@@ -89,8 +92,10 @@ def main():
     out += [line("🔴", i, f" ({i['status']})" if i["status"] not in ("Todo", "blocked") else "") for i in sorted(blocked, key=lambda i: (priority(i["labels"]), i["position"]))] or ["- none"]
     out.append("\n### ⚫ In progress / in review")
     out += [line("⚫", i, f" ({i['status']})") for i in working] or ["- none"]
-    out.append(f"\n### 🔵 Next {args.next}")
-    out += [line("🔵", i) for i in todo[:args.next]] or ["- none"]
+    out.append("\n### 🔵 Next in line (the agents pick from this column)")
+    out += [line("🔵", i) for i in queue] or ["- none"]
+    out.append(f"\n### ⚪ Todo, next {args.next} to queue (agents never pick these)")
+    out += [line("⚪", i) for i in todo[:args.next]] or ["- none"]
     print("\n".join(out))
 
 

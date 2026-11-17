@@ -1,6 +1,6 @@
 ---
 name: w-next
-description: Show where the work stands when the user says "w-next" (or asks "what's next?"). Prints the recently merged PRs (green), blocked tickets (red), tickets in progress or in review (black) and the next tickets to pick up (blue) from the GitHub project board. Read-only.
+description: Show where the work stands when the user says "w-next" (or asks "what's next?"). Prints the recently merged PRs (green), blocked tickets (red), tickets in progress or in review (black), the Next in line queue (blue) and the next Todo items to queue (white) from the GitHub project board. Read-only.
 ---
 
 # W-Next
@@ -23,7 +23,8 @@ Use this skill when the user says `w-next`, optionally with a number of next tic
    - 🟢 recently merged PRs, newest first;
    - 🔴 blocked tickets (in the board's `blocked` column or with the `status: blocked` label), by priority;
    - ⚫ tickets in progress or in review;
-   - 🔵 the next tickets: `Todo` and not blocked, in board order. The board is kept in plan order, with a Priority field for sorting in GitHub. Add `--sort priority` to order by priority label instead.
+   - 🔵 the Next in line column: the queue the agents pick from, in board order.
+   - ⚪ the next `Todo` items to queue (agents never pick these), not blocked, in board order. The board is kept in plan order, with a Priority field for sorting in GitHub. Add `--sort priority` to order by priority label instead.
 
 3. After the list, add at most two short lines:
    - an inconsistency worth fixing, if one is obvious (for example a ticket in review with no open PR, or a blocked ticket whose blockers are closed);
