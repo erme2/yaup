@@ -9,6 +9,11 @@ LOGS="$HERE/logs"
 LOCK="$HOME/.yaup/checkouts.lock"
 mkdir -p "$HOME/.yaup"
 export PATH="$HOME/.local/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+# Node from nvm's default version when nvm is installed: Homebrew's node breaks when Homebrew upgrades a library it links.
+if [ -s "$HOME/.nvm/nvm.sh" ]; then
+  nvm_node=$(bash -c '. "$HOME/.nvm/nvm.sh" --no-use && nvm which default' 2>/dev/null)
+  [ -x "$nvm_node" ] && export PATH="$(dirname "$nvm_node"):$PATH"
+fi
 # Claude login under cron: the long-lived token from setup-token, in a 600 file outside the repo.
 if [ -r "$HOME/.config/yaup/claude-token" ]; then export CLAUDE_CODE_OAUTH_TOKEN="$(cat "$HOME/.config/yaup/claude-token")"; fi
 mkdir -p "$LOGS"

@@ -26,7 +26,8 @@ Files contain placeholders (`__WORKSPACE__`, `__HOME__`, `__SLACK_OWNER_DM__`, `
 On the machine that runs the agents:
 - `claude` (Claude Code CLI), logged in as the owner;
 - `gh`, logged in as `erme2`, with access to the repositories;
-- `git`, `node`, `npm`, `php`, `composer`, `python3`, and `docker` if Pane's integration tests should run;
+- `node` and `npm`, preferably through nvm: the runners put nvm's default version first on their PATH (Homebrew's node can break when Homebrew upgrades a library it links);
+- `git`, `php`, `composer`, `python3`, and `docker` if Pane's integration tests should run;
 - the Slack connector available to Claude;
 - this repository checked out at the workspace path (`/Volumes/code/yaup` on the Mac), with the checkouts under `repos/`.
 
