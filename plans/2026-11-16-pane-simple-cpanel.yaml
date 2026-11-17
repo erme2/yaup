@@ -61,6 +61,14 @@ scope:
     - repos/Latte (src/product, packages/latte-core, docs)
     - docs and plans in yaup only for this plan
 
+decisions_2026_11_17:
+  - First feedback build is the Sweegly web app (Expo web on Hostinger) with sign in, lists and items only; sharing, product search and the rest come after feedback (sweegly#22).
+  - App tables come from migrations in erme2/sweegly-data, run against the install's own Pane database under APP_TABLE_PREFIX; Pane creating tables from Latte is later (Pane#187).
+  - Pane adds a one-hop members-table access rule for /data (Pane#185); groups (Pane#159) are deferred.
+  - Maps are loaded with a small idempotent `maps:import` command (Pane#186) from sweegly-data's maps file (sweegly-data#4); the Pane deploy runs migrations then the import (deploy#24).
+  - sweegly-pane-dev already exists with its database; sweegly#19 is closed as done or moved.
+  - "Board: new tickets Pane#185, #186, #187, #188, sweegly-data#4, deploy#24, sweegly#44, #45; Pane#51 closed into #188; Pane#157, #158, #173, #179 wait for Pane#182."
+
 acceptance_criteria:
   - Pane has no organization, managed-connection, vault, discovery, application-registry, message-queue or legacy-API code, routes, tables or tests.
   - An admin can be created only by invitation; a user can sign up directly only when the setting is on.
