@@ -67,6 +67,7 @@ decisions_2026_11_17:
   - Pane adds a one-hop members-table access rule for /data (Pane#185); groups (Pane#159) are deferred.
   - Maps are loaded with a small idempotent `maps:import` command (Pane#186) from sweegly-data's maps file (sweegly-data#4); the Pane deploy runs migrations then the import (deploy#24).
   - sweegly-pane-dev already exists with its database; sweegly#19 is closed as done or moved.
+  - The install databases may be dropped and recreated from scratch (owner, 2026-11-17); applied to sweegly-pane-dev, other installs need the owner first.
   - "Board: new tickets Pane#185, #186, #187, #188, sweegly-data#4, deploy#24, sweegly#44, #45; Pane#51 closed into #188; Pane#157, #158, #173, #179 wait for Pane#182."
 
 acceptance_criteria:
