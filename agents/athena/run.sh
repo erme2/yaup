@@ -7,6 +7,11 @@ WORKSPACE="__WORKSPACE__"
 LOGS="$HERE/logs"
 LOCK="$HERE/run.lock"
 export PATH="$HOME/.local/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+# Node from nvm's default version when nvm is installed: Homebrew's node breaks when Homebrew upgrades a library it links.
+if [ -s "$HOME/.nvm/nvm.sh" ]; then
+  nvm_node=$(bash -c '. "$HOME/.nvm/nvm.sh" --no-use && nvm which default' 2>/dev/null)
+  [ -x "$nvm_node" ] && export PATH="$(dirname "$nvm_node"):$PATH"
+fi
 mkdir -p "$LOGS"
 stamp=$(date +%Y-%m-%d_%H%M)
 log="$LOGS/$stamp.log"
