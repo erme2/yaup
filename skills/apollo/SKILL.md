@@ -28,7 +28,7 @@ Before acting on a pull request, check its checkout. If the working tree is clea
    - if it's valid but belongs to another ticket or needs a decision, reply on the PR with the reason;
    - if the claim doesn't hold, reply on the PR with the evidence.
 
-   Commit with the repository's title convention, push to the PR branch, and reply on the comment. Never force push.
+   Commit with the repository's title convention, push to the PR branch, and reply on the comment. Never force push. Every fix Apollo makes is committed and pushed in the same run, so the next review sees it. Never leave an Apollo fix uncommitted in a checkout: if validation fails, revert the fix instead of stopping with the edit in place.
 5. **Re-check after pushing.** Let CI run. Merge only on a later pass, once the rules in step 2 hold.
 
 ## Stopping
