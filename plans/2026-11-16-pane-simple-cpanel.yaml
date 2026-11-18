@@ -6,8 +6,13 @@ status: approved
 approval:
   approved: true
   approver: erme2
-  approved_at: '2026-11-16T23:47:02Z'
-  approval_commit: 15d1b82
+  approved_at: '2026-11-17T09:47:58Z'
+  approval_commit: baba852
+  approval_note: >
+    Re-approved for the revised scope (Story/Action/Mapper stays as the only CRUD route, /data
+    removed). The owner asked for that amendment on 2026-11-17 at 09:47:58Z ("Amend the plan
+    (PR #70) so the legacy route stays and /data is removed") and confirmed on 2026-11-18 that
+    this is the approval of the plan as it stands in baba852. First approval: 2026-11-16T23:47:02Z, 15d1b82.
 
 context:
   summary: >
