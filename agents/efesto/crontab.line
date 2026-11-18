@@ -1,1 +1,1 @@
-0,30 * * * * /bin/bash __HOME__/.efesto/run.sh >> __HOME__/.efesto/logs/cron.log 2>&1
+0 * * * * /bin/bash __HOME__/.efesto/run.sh >> __HOME__/.efesto/logs/cron.log 2>&1

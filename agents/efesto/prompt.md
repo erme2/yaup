@@ -19,7 +19,7 @@ Before anything, read Yaup's `AGENTS.md`, `README.md`, `policies/core.md`, `docs
 
 ## Checkout lock
 
-Efesto and Dioniso share the checkouts under `repos/`, so only one of them may switch branches at a time. The runner (`run.sh`) holds the lock `~/.yaup/checkouts.lock` for the whole run. Do not start, stop or remove that lock yourself, and don't work in a checkout that Dioniso might be using: your run already holds the lock.
+Efesto and Dioniso share the checkouts under `repos/` but have separate locks, so they can run at the same time. The runner (`run.sh`) holds your own lock `~/.efesto/run.lock` for the whole run; Apollo takes it too while it merges. Do not start, stop or remove any lock yourself. Never switch branches or edit files in a repository where an item with `agent: dioniso` is In Progress: Dioniso may be working in that checkout.
 
 ## 0b. Resolve merge conflicts on open pull requests
 
@@ -38,7 +38,7 @@ Conflict fixes don't count as your ticket: after them, go on to "1. Pick the tic
 
 ## 1. Pick the ticket
 
-1. If an item with `agent: efesto` is already In Progress, someone is on it: don't take a second ticket in that same repository. An item with `agent: dioniso` in progress doesn't block you.
+1. If an item with `agent: efesto` is already In Progress, someone is on it: don't take a second ticket in that same repository. If an item with `agent: dioniso` is In Progress in a repository, skip every ticket in that repository this run: Dioniso is using that checkout.
 2. Take the FIRST item in board order that: is in the Next in line column (`41da12d1`), not Todo; is an open issue whose role is backend (see "Your scope"); has none of the labels `status: blocked`, `status: in progress`, `status: in review`, `agent: needs input`, `role: none`, `agent: queue`; has no open PR for it (`gh pr list -R erme2/<repo> --state open --search "<number>"`); and whose `Depends on` items in the body are all closed or merged. Skip a ticket whose dependencies are open (don't edit it).
 3. If the target checkout has uncommitted changes that aren't yours, leave them alone; if they'd mix with the ticket's files, skip the ticket and say so in the report.
 4. If nothing qualifies, report "nothing to pick" with the reason for the top 3 skipped tickets and end the run.

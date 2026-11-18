@@ -6,7 +6,7 @@ The Claude agents that work the Sweegly board unattended live in `agents/`. This
 
 | Agent | Job | Schedule | Folder |
 |---|---|---|---|
-| Efesto | Backend developer: REST API, database, data structures. Takes the next backend ticket and runs `just do` | twice an hour, at :00 and :30 (Dioniso is paused) | `agents/efesto` |
+| Efesto | Backend developer: REST API, database, data structures. Takes the next backend ticket and runs `just do` | every hour at :00 | `agents/efesto` |
 | Dioniso | Frontend and design developer: UI, components, `.figcraft` files. Takes the next frontend ticket and runs `just do` | every hour at :30 | `agents/dioniso` |
 | Zeus | Deploys new tags of pane, latte and sweegly to dev | every hour at :10 | `agents/zeus` |
 | Ermes | Unblocks, re-prioritises and refills Next in line for both developers | scheduled by the owner's own crontab line, not by the installer | `agents/ermes` |
@@ -95,7 +95,7 @@ To test an agent without waiting for its slot, run its wrapper directly:
 /bin/bash ~/.ermes/run.sh
 ```
 
-It takes the same lock as its scheduled runs, so it's skipped if another run of that agent (or, for Efesto and Dioniso, of either developer) is in progress.
+It takes the same lock as its scheduled runs, so it's skipped if another run of that agent (or of Apollo, for Efesto and Dioniso) is in progress.
 
 ## Stop or remove an agent
 
@@ -113,8 +113,7 @@ If a run is stuck and holds its lock, the next runs of that agent are skipped un
 
 ```sh
 ps aux | grep -E "claude|run.sh" | grep -v grep   # check nothing is running
-rmdir ~/.yaup/checkouts.lock                      # Efesto, Dioniso and Apollo
-rmdir ~/.ermes/run.lock                           # likewise ~/.<name>/run.lock for Zeus, Ermes and Crono
+rmdir ~/.ermes/run.lock                           # likewise ~/.<name>/run.lock for every agent
 ```
 
 ## Logs
@@ -125,9 +124,9 @@ Each run writes:
 - `~/.<name>/logs/launchd.log`: anything launchd itself captured from the runner;
 - `~/.<name>/logs/skipped.log`: runs that were skipped because the lock was held or the workspace was not mounted.
 
-## Shared lock
+## Locks
 
-Efesto, Dioniso and Apollo all switch branches in `repos/`, so they share one lock, `~/.yaup/checkouts.lock`. Only one of them runs at a time. A run that finds the lock held is skipped, so a long ticket delays the next developer's run rather than colliding with it. Zeus, Ermes and Crono each have their own lock, `~/.<name>/run.lock`, so they only skip their own overlapping runs. Ermes and Crono work on the board, not the checkouts. I haven't checked whether Zeus's deploy steps touch `repos/`; if they do, it should move to the shared lock.
+Every agent has its own lock, `~/.<name>/run.lock`, so a long run only skips that agent's next slot. Efesto runs at :00 and Dioniso at :30, and they can overlap. They share the checkouts in `repos/`, so neither touches a repository where the other has an item In Progress. Apollo switches branches in every repository, so it takes both Efesto's and Dioniso's locks, and it skips its pass while either developer is running. I haven't checked whether Zeus's deploy steps touch `repos/`. If they do, Zeus should take the developer locks too.
 
 ## Mac notes
 

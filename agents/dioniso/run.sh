@@ -1,13 +1,13 @@
 #!/bin/bash
 # Dioniso, the hourly frontend agent for the Sweegly board: runs headless Claude Code in the Yaup workspace on one ticket.
 # Started by its crontab line (see crontab.line, installed by agents/install.sh). Logs in ~/.dioniso/logs.
-# Holds the checkout lock shared with Dioniso (~/.yaup/checkouts.lock), so the two never switch branches at once.
+# Holds its own lock (~/.dioniso/run.lock), so a long run skips its own next slot. Efesto has its own lock: the prompts keep the two out of each other's repositories.
 set -u
 HERE="$HOME/.dioniso"
 WORKSPACE="__WORKSPACE__"
 LOGS="$HERE/logs"
-LOCK="$HOME/.yaup/checkouts.lock"
-mkdir -p "$HOME/.yaup"
+LOCK="$HERE/run.lock"
+mkdir -p "$HERE"
 export PATH="$HOME/.local/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 # Claude login under cron: the long-lived token from setup-token, in a 600 file outside the repo.
 if [ -r "$HOME/.config/yaup/claude-token" ]; then export CLAUDE_CODE_OAUTH_TOKEN="$(cat "$HOME/.config/yaup/claude-token")"; fi
@@ -15,11 +15,11 @@ mkdir -p "$LOGS"
 stamp=$(date +%Y-%m-%d_%H%M)
 log="$LOGS/$stamp.log"
 
-notify() { /usr/bin/osascript -e "display notification \"${2//\"/\'}\" with title \"Efesto\" subtitle \"${1//\"/\'}\"" >/dev/null 2>&1 || true; }
+notify() { /usr/bin/osascript -e "display notification \"${2//\"/\'}\" with title \"Dioniso\" subtitle \"${1//\"/\'}\"" >/dev/null 2>&1 || true; }
 
-# One run at a time, across Dioniso and Efesto: a long ticket can take more than an hour.
+# One Dioniso run at a time: a long ticket can take more than an hour. Apollo also takes this lock while it switches branches.
 if ! mkdir "$LOCK" 2>/dev/null; then
-  echo "$(date) previous run (or Dioniso) still holds the checkout lock, skipping" >> "$LOGS/skipped.log"
+  echo "$(date) previous run (or Apollo) still holds the lock, skipping" >> "$LOGS/skipped.log"
   exit 0
 fi
 trap 'rmdir "$LOCK"' EXIT

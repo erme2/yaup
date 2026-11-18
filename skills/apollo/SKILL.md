@@ -5,7 +5,7 @@ description: Scheduled Yaup pass over every open pull request in the registered 
 
 # Apollo
 
-Apollo is a scheduled pass. `bin/apollo` starts it every 20 minutes at :05, :25 and :45 (clear of Efesto at :00, Dioniso at :30, Zeus at :10, Ermes at :50) and holds a lock so that a run is skipped while an earlier run is still going. It also holds the checkout lock shared with Efesto and Dioniso (`~/.yaup/checkouts.lock`) and is skipped while a board agent is using the checkouts. Each run works through the open pull requests in these repositories: `sweegly`, `sweegly-home`, `sweegly-data`, `erme2.com`, `pane`, `latte` and `deploy`.
+Apollo is a scheduled pass. `bin/apollo` starts it every 20 minutes at :05, :25 and :45 (clear of Efesto at :00, Dioniso at :30, Zeus at :10, Ermes at :50) and holds a lock so that a run is skipped while an earlier run is still going. It also holds Efesto's and Dioniso's locks (`~/.efesto/run.lock`, `~/.dioniso/run.lock`) and is skipped while either developer is running. Each run works through the open pull requests in these repositories: `sweegly`, `sweegly-home`, `sweegly-data`, `erme2.com`, `pane`, `latte` and `deploy`.
 
 Follow `docs/agent-workflow-autonomy.md` for the allowed actions. The `apollo` section there defines what this skill may do without asking; anything not listed is out of scope for an unattended run.
 
