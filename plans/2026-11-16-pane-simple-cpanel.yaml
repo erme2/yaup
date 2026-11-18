@@ -6,8 +6,8 @@ status: approved
 approval:
   approved: true
   approver: erme2
-  approved_at: 2026-11-16
-  approval_commit: 7849ee9
+  approved_at: '2026-11-16T23:47:02Z'
+  approval_commit: 15d1b82
 
 context:
   summary: >
