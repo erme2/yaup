@@ -1,0 +1,51 @@
+schema_version: 1
+id: 2026-11-18-sweegly-mvp-roadmap
+title: "plan: Sweegly MVP roadmap (data folder, Pane CRUD, Latte maps editor, lists)"
+status: proposed
+
+approval:
+  approved: false
+  approver: null
+  approved_at: null
+  approval_commit: null
+
+context:
+  summary: >
+    Alpha phase, building the MVP. Sweegly is a React Native app shipped as a static web
+    build (Hostinger now, S3/CloudFront later); iOS and Android are the last phase. Users and
+    admins sign in and create and edit grocery lists; sharing (read-only and edit) comes next.
+    Sweegly is invite only. Sweegly always uses Pane, a headless REST API with map-driven
+    (dynamic) CRUD endpoints plus hand-written (static) endpoints where maps can't express
+    something. Latte is the admin frontend over the same Pane API and login: invitations for
+    admins and users, a maps editor, and list/edit views drawn from the maps.
+    Described by the owner in the conversation of 2026-11-18, with the answers below.
+  supersedes_parts_of: plans/2026-11-16-pane-simple-cpanel.yaml (sweegly-data, deploy flow)
+
+decisions:
+  - sweegly-data is retired; Sweegly's migrations, data model, maps and migrate script live in sweegly's top-level data/ folder. sweegly-data is archived, not deleted.
+  - Pane runs an app's data folder with an artisan command (app:install), migrations then maps. An HTTP endpoint may come later.
+  - Migrations are the source of truth for table structure. In the MVP Latte edits maps (exposed fields, labels, validation, views) and data, never tables. Pane creating tables from Latte (Pane#187) comes later.
+  - Dynamic views are drawn by Latte from the maps Pane serves. Sweegly keeps its own hand-made screens over the same endpoints.
+  - Static endpoints are hand-written extras (session, invitations, roles, sharing), one ticket each when needed.
+  - The Sweegly lists screen (sweegly#20) starts after step 2, in parallel with step 3.
+  - Agents stay stopped until the owner has reviewed the board.
+
+steps:
+  - "1. Data defined and saved: sweegly#50 data folder, Pane#186 app:install, sweegly#47 maps, deploy#24 deploy runs app:install; sweegly#51 archive sweegly-data."
+  - "2. Pane CRUD in place and tested: Pane#193 user UUID, #185 members access, #183 invitations, #194 end-to-end CRUD tests (gate), #157 maps admin API."
+  - "3. Latte: Latte#80 record list/edit, #79 invites, #81 dynamic menu and views, #71 maps editor."
+  - "App: sweegly#20 lists and items after step 2; sweegly#44 sharing with Pane#195."
+  - "Docs: sweegly#52 roadmap, Pane#188, Latte#82, deploy#26."
+  - "Later: S3/CloudFront deploy#25, native apps (Pane#130, deploy#23), product search, price checks, delete my data."
+
+tickets:
+  transferred: "sweegly-data#4 -> sweegly#47, #3 -> sweegly#48, #2 -> sweegly#49"
+  created: "sweegly#50, #51, #52; Pane#193, #194, #195; Latte#81, #82; deploy#25, #26"
+  reshaped: "Pane#183, #186, #157, #188; Latte#71, #79; deploy#24; sweegly#20, #22, #44, #47"
+
+completion:
+  changes: []
+  validation: []
+  deviations: []
+  next_steps:
+    - Owner reviews this plan and the board, sets the approval fields, and restarts the agents.
