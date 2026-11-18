@@ -13,7 +13,7 @@ The Claude agents that run unattended on the owner's Mac, kept here so they can 
 
 Apollo (PR merge and fix pass) lives in `bin/apollo` and `skills/apollo`. Athena's prompt and runner live in `agents/athena/`; Codex schedules her, so the installer only copies her files.
 
-Efesto and Dioniso both use the `just do` skill. They share the checkouts under `repos/`, so their runners and Apollo hold one lock, `~/.yaup/checkouts.lock`: only one of them switches branches at a time. A run that finds the lock held is skipped, so a long ticket delays the next developer's run rather than colliding with it. A ticket belongs to a developer by its `role:` label (`role: backend` or `role: frontend`), or else by its repository.
+Efesto and Dioniso both use the `just do` skill. They share the checkouts under `repos/` but each has its own lock (`~/.efesto/run.lock`, `~/.dioniso/run.lock`), so they can run at the same time. Neither touches a repository where the other has an item In Progress. Apollo takes both locks while it merges. A ticket belongs to a developer by its `role:` label (`role: backend` or `role: frontend`), or else by its repository.
 
 ## Layout
 
