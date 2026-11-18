@@ -1,13 +1,13 @@
 #!/bin/bash
 # Efesto, the hourly backend agent for the Sweegly board: runs headless Claude Code in the Yaup workspace on one ticket.
 # Started by its crontab line (see crontab.line, installed by agents/install.sh). Logs in ~/.efesto/logs.
-# Holds the checkout lock shared with Dioniso (~/.yaup/checkouts.lock), so the two never switch branches at once.
+# Holds its own lock (~/.efesto/run.lock), so a long run skips its own next slot. Dioniso has its own lock: the prompts keep the two out of each other's repositories.
 set -u
 HERE="$HOME/.efesto"
 WORKSPACE="__WORKSPACE__"
 LOGS="$HERE/logs"
-LOCK="$HOME/.yaup/checkouts.lock"
-mkdir -p "$HOME/.yaup"
+LOCK="$HERE/run.lock"
+mkdir -p "$HERE"
 export PATH="$HOME/.local/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 # Claude login under cron: the long-lived token from setup-token, in a 600 file outside the repo.
 if [ -r "$HOME/.config/yaup/claude-token" ]; then export CLAUDE_CODE_OAUTH_TOKEN="$(cat "$HOME/.config/yaup/claude-token")"; fi
@@ -17,9 +17,9 @@ log="$LOGS/$stamp.log"
 
 notify() { /usr/bin/osascript -e "display notification \"${2//\"/\'}\" with title \"Efesto\" subtitle \"${1//\"/\'}\"" >/dev/null 2>&1 || true; }
 
-# One run at a time, across Efesto and Dioniso: a long ticket can take more than an hour.
+# One Efesto run at a time: a long ticket can take more than an hour. Apollo also takes this lock while it switches branches.
 if ! mkdir "$LOCK" 2>/dev/null; then
-  echo "$(date) previous run (or Dioniso) still holds the checkout lock, skipping" >> "$LOGS/skipped.log"
+  echo "$(date) previous run (or Apollo) still holds the lock, skipping" >> "$LOGS/skipped.log"
   exit 0
 fi
 trap 'rmdir "$LOCK"' EXIT
@@ -38,6 +38,7 @@ ALLOWED=(
   "Bash(wc:*)" "Bash(sort:*)" "Bash(diff:*)" "Bash(jq:*)" "Bash(mkdir:*)" "Bash(cp:*)" "Bash(mv:*)"
   "Bash(touch:*)" "Bash(echo:*)" "Bash(printf:*)" "Bash(test:*)" "Bash(cd:*)" "Bash(pwd)" "Bash(date:*)"
   "Bash(export:*)" "Bash(sleep:*)"
+  "Bash(dbmate:*)" "Bash(bin/migrate:*)" "Bash(tests/*)" "Bash(bash tests/*)"
   "mcp__claude_ai_Slack__slack_send_message"
 )
 
@@ -46,7 +47,7 @@ RUN_NOTE="Run started at epoch $STARTED. End the last Slack message you send in 
 claude -p "$(cat "$HERE/prompt.md")
 
 $RUN_NOTE" \
-  --model claude-opus-5-5 \
+  --model claude-sonnet-5-5 --effort medium \
   --allowedTools "${ALLOWED[@]}" \
   --output-format json > "$log.json" 2> "$log"
 status=$?

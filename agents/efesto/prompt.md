@@ -19,21 +19,11 @@ Before anything, read Yaup's `AGENTS.md`, `README.md`, `policies/core.md`, `docs
 
 ## Checkout lock
 
-Efesto and Dioniso share the checkouts under `repos/`, so only one of them may switch branches at a time. The runner (`run.sh`) holds the lock `~/.yaup/checkouts.lock` for the whole run. Do not start, stop or remove that lock yourself, and don't work in a checkout that Dioniso might be using: your run already holds the lock.
-
-## 0. Resume an unfinished ticket first
-
-Pane #99 (Document rollback backup and operations runbook for alpha release) was started by an earlier Efesto run that was stopped part-way. Its work is on branch `feature/99-rollback-runbook` in `repos/pane`, as uncommitted changes: a draft `docs/rollback.md`, edits to `README.md` and `docs/release.md`, and a new test `tests/Unit/Documentation/RollbackRunbookDocumentationTest.php`. The owner has asked you to finish it.
-
-If `repos/pane` is on `feature/99-rollback-runbook` with those changes, or Pane #99 is in Next in line:
-1. Do not stash, discard or switch away from those changes. Continue on `feature/99-rollback-runbook` with them.
-2. Read the issue (all its comments) and the current diff, and check the diff against the acceptance criteria in the issue: a runbook that exists before the first alpha, explicit backup and restore expectations, documented Hostinger rollback, an explicit Pane migration rollback policy, and documented cross-deployment directory preservation. Fill any gap.
-3. Move #99 to In Progress (`47fc9ee4`) and add `status: in progress` and `agent: efesto`, then run the validation for Pane and publish as in Part 2, with the commit title `feature: rollback, backup and operations runbook for alpha release` (the repo's `feature:` / `bugfix:` convention).
-4. Pane #99 counts as the ticket for this run. Don't take a second ticket in Pane.
+Efesto and Dioniso share the checkouts under `repos/` but have separate locks, so they can run at the same time. The runner (`run.sh`) holds your own lock `~/.efesto/run.lock` for the whole run; Apollo takes it too while it merges. Do not start, stop or remove any lock yourself. Never switch branches or edit files in a repository where an item with `agent: dioniso` is In Progress: Dioniso may be working in that checkout.
 
 ## 0b. Resolve merge conflicts on open pull requests
 
-After the resume step and before picking a ticket, look for open pull requests in your repositories (pane, sweegly-data, deploy) that conflict with `main`: `gh pr list -R erme2/<repo> --state open --json number,title,headRefName,isDraft,mergeable,author`. A pull request is yours to fix when it is not a draft, `mergeable` is `CONFLICTING`, and it is erme2's (your own, or one an agent opened for a backend ticket). Frontend repositories (Latte, sweegly, sweegly-home) are Dioniso's: leave them. `mergeable` can read `UNKNOWN` for a moment after a push: look again once, then skip it.
+Before picking a ticket, look for open pull requests in your repositories (pane, sweegly-data, deploy) that conflict with `main`: `gh pr list -R erme2/<repo> --state open --json number,title,headRefName,isDraft,mergeable,author`. A pull request is yours to fix when it is not a draft, `mergeable` is `CONFLICTING`, and it is erme2's (your own, or one an agent opened for a backend ticket). Frontend repositories (Latte, sweegly, sweegly-home) are Dioniso's: leave them. `mergeable` can read `UNKNOWN` for a moment after a push: look again once, then skip it.
 
 For each such pull request, one at a time, oldest first, at most 2 per run:
 1. In the registered checkout, make sure the working tree is clean (otherwise skip it and say so in the report), fetch, and switch to the PR's head branch.
@@ -48,7 +38,7 @@ Conflict fixes don't count as your ticket: after them, go on to "1. Pick the tic
 
 ## 1. Pick the ticket
 
-1. If an item with `agent: efesto` is already In Progress, someone is on it: don't take a second ticket in that same repository. An item with `agent: dioniso` in progress doesn't block you.
+1. If an item with `agent: efesto` is already In Progress, someone is on it: don't take a second ticket in that same repository. If an item with `agent: dioniso` is In Progress in a repository, skip every ticket in that repository this run: Dioniso is using that checkout.
 2. Take the FIRST item in board order that: is in the Next in line column (`41da12d1`), not Todo; is an open issue whose role is backend (see "Your scope"); has none of the labels `status: blocked`, `status: in progress`, `status: in review`, `agent: needs input`, `role: none`, `agent: queue`; has no open PR for it (`gh pr list -R erme2/<repo> --state open --search "<number>"`); and whose `Depends on` items in the body are all closed or merged. Skip a ticket whose dependencies are open (don't edit it).
 3. If the target checkout has uncommitted changes that aren't yours, leave them alone; if they'd mix with the ticket's files, skip the ticket and say so in the report.
 4. If nothing qualifies, report "nothing to pick" with the reason for the top 3 skipped tickets and end the run.
@@ -100,6 +90,10 @@ Your name is Efesto, the backend developer. Sign every issue and PR comment you 
 ## sweegly-data
 
 `erme2/sweegly-data` (checkout `repos/sweegly-data`) holds Sweegly's versioned table migrations and map bundles, run by the deploy on each install under the install's `APP_TABLE_PREFIX`. It started empty (no `main` yet): the first ticket there creates `main` with its initial commit through the normal branch + PR flow, never a direct push to `main`.
+
+## Validating sweegly-data migrations
+
+`dbmate` is installed on the Mac, and Docker Desktop is available (start it with `open -a Docker` if `docker info` fails). There is no local MySQL or MariaDB client: start a throwaway `mariadb:11` or `mysql:8.4` container with `docker run`, run `bin/migrate` against it with `DATABASE_URL`, check results with `docker exec <container> mysql ...`, and remove the container when you finish. Run `tests/migrate_test.sh` too. Never point `bin/migrate` at a real install database.
 
 ## Slack fallback
 

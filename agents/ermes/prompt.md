@@ -19,7 +19,7 @@ The plan is the board's item order (the order that `gh project item-list 14 --ow
 
 2a. **Unstick abandoned tickets.** An item is stuck when it is In Progress (column `47fc9ee4` or label `status: in progress`) and all of these hold:
    - its `updatedAt` is more than 2 hours ago (check with `gh issue view <n> -R erme2/<repo> --json updatedAt`);
-   - no agent is working: the shared checkout lock `~/.yaup/checkouts.lock` does not exist (`test ! -d ~/.yaup/checkouts.lock`). If Efesto or Dioniso is running, don't unstick anything this run;
+   - no agent is working: neither developer lock exists (`test ! -d ~/.efesto/run.lock && test ! -d ~/.dioniso/run.lock`). If Efesto or Dioniso is running, don't unstick anything this run;
    - it has no open pull request (`gh pr list -R erme2/<repo> --state open --search "<number>"`).
 
    For a stuck item, remove the labels `status: in progress` and `agent: efesto` or `agent: dioniso` (whichever is on it), move the item to Next in line (`41da12d1`), and leave a one-line comment on the issue signed `— Ermes`: `Ermes: no agent has worked on this for over 2 hours, so it's back in Next in line.` Don't touch an item that is assigned to someone other than erme2, or one whose checkout has uncommitted changes that Efesto or Dioniso isn't resuming (see Efesto's resume section). Report each one you unstick in the Slack summary.

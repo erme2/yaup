@@ -27,7 +27,7 @@ On the machine that runs the agents:
 - `claude` (Claude Code CLI), logged in as the owner;
 - `gh`, logged in as `erme2`, with access to the repositories;
 - `git`, `node`, `npm`, `php`, `composer`, `python3`, and `docker` if Pane's integration tests should run;
-- the Slack connector available to Claude;
+- the Slack connector available to Claude, or the Slack bot token below (the fallback for runners that have no connector, such as Codex);
 - this repository checked out at the workspace path (`/Volumes/code/yaup` on the Mac), with the checkouts under `repos/`.
 
 ## Install
@@ -43,6 +43,17 @@ On the machine that runs the agents:
    - `WORKSPACE`: the absolute path of this repository;
    - `SLACK_OWNER_DM`: the owner's own Slack DM channel ID (the agents send blockers and digests there);
    - `SLACK_CHANNEL`: the #sweegly channel ID (the run starts and summaries go there).
+
+   **Slack bot token** (needed only for the fallback `agents/lib/slack_post.py`):
+   1. In https://api.slack.com/apps open (or create) the Yaup agents app and give its bot token the scopes `chat:write`, `im:write` (to open the owner's DM) and `channels:read`; reinstall the app to the workspace if Slack asks.
+   2. In App Home, turn on the Messages tab so the bot can DM you.
+   3. Invite the bot to the #sweegly channel (`/invite @yaup_agents`).
+   4. Save the bot token (starts with `xoxb-`) outside the repository:
+
+      ```sh
+      printf '%s' 'xoxb-...' > ~/.config/yaup/slack-token && chmod 600 ~/.config/yaup/slack-token
+      ```
+   5. Check it: `echo "Yaup Slack check" | python3 agents/lib/slack_post.py dm`. It prints `sent to dm`. If the token file or `agents.env` is missing or empty, it stops with a message naming the file; Slack errors are printed as `slack <method> failed: <error>`.
 
 2. Preview the rendered files without installing anything:
 
@@ -84,7 +95,7 @@ To test an agent without waiting for its slot, run its wrapper directly:
 /bin/bash ~/.ermes/run.sh
 ```
 
-It takes the same lock as its scheduled runs, so it's skipped if another run of that agent (or, for Efesto and Dioniso, of either developer) is in progress.
+It takes the same lock as its scheduled runs, so it's skipped if another run of that agent (or of Apollo, for Efesto and Dioniso) is in progress.
 
 ## Stop or remove an agent
 
@@ -102,8 +113,7 @@ If a run is stuck and holds its lock, the next runs of that agent are skipped un
 
 ```sh
 ps aux | grep -E "claude|run.sh" | grep -v grep   # check nothing is running
-rmdir ~/.yaup/checkouts.lock                      # Efesto, Dioniso and Apollo
-rmdir ~/.ermes/run.lock                           # likewise ~/.<name>/run.lock for Zeus, Ermes and Crono
+rmdir ~/.ermes/run.lock                           # likewise ~/.<name>/run.lock for every agent
 ```
 
 ## Logs
@@ -114,9 +124,9 @@ Each run writes:
 - `~/.<name>/logs/launchd.log`: anything launchd itself captured from the runner;
 - `~/.<name>/logs/skipped.log`: runs that were skipped because the lock was held or the workspace was not mounted.
 
-## Shared lock
+## Locks
 
-Efesto, Dioniso and Apollo all switch branches in `repos/`, so they share one lock, `~/.yaup/checkouts.lock`. Only one of them runs at a time. A run that finds the lock held is skipped, so a long ticket delays the next developer's run rather than colliding with it. Zeus, Ermes and Crono each have their own lock, `~/.<name>/run.lock`, so they only skip their own overlapping runs. Ermes and Crono work on the board, not the checkouts. I haven't checked whether Zeus's deploy steps touch `repos/`; if they do, it should move to the shared lock.
+Every agent has its own lock, `~/.<name>/run.lock`, so a long run only skips that agent's next slot. Efesto runs at :00 and Dioniso at :30, and they can overlap. They share the checkouts in `repos/`, so neither touches a repository where the other has an item In Progress. Apollo switches branches in every repository, so it takes both Efesto's and Dioniso's locks, and it skips its pass while either developer is running. I haven't checked whether Zeus's deploy steps touch `repos/`. If they do, Zeus should take the developer locks too.
 
 ## Mac notes
 
