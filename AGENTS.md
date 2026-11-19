@@ -8,7 +8,7 @@ Before doing substantive work in this repository, read the local Yaup context:
 - Relevant files under `.agents/memory/` when the task touches a remembered repository or topic.
 - Any invoked skill under `skills/*/SKILL.md` before following that workflow.
 
-Project implementation work for managed repositories must happen in the registered checkout under `repos/`, not in temporary clones or hidden working directories. Treat existing worktree changes as user-owned unless the user explicitly asks to modify or revert them.
+Project implementation work for managed repositories must happen in the registered checkout under `repos/`, not in temporary clones or hidden working directories. Exception, approved by the owner on 2026-11-19: the Efesto and Dioniso agents implement each ticket in a visible git worktree under `worktrees/<agent>/` created from the registered checkout, so the owner's uncommitted work in `repos/` is never touched. The owner's own `jump on` work stays in the main checkout. Treat existing worktree changes as user-owned unless the user explicitly asks to modify or revert them.
 
 Command shorthand:
 
