@@ -25,7 +25,9 @@ Before anything, read Yaup's `AGENTS.md`, `README.md`, `policies/core.md`, `docs
 
 You work in your own git worktree, never in the shared checkout under `repos/`, so the owner's uncommitted work there is never touched. The owner works in the main checkouts; you don't.
 
-- Start: `git -C __WORKSPACE__/repos/<repo> fetch origin`, then `git -C __WORKSPACE__/repos/<repo> worktree add /Volumes/code/yaup/worktrees/dioniso/<repo>-<n> -b <branch> origin/main` (use the PR head branch when you resume one). Work and validate only in that directory.
+- Start a new ticket: `git -C __WORKSPACE__/repos/<repo> fetch origin`, then `git -C __WORKSPACE__/repos/<repo> worktree add /Volumes/code/yaup/worktrees/dioniso/<repo>-<n> -b <branch> origin/main`.
+- Resume a PR whose branch already exists on origin: if the worktree path still exists, check `git -C <path> status` is clean, then `git -C <path> fetch origin && git -C <path> merge --ff-only origin/<branch>`. If the path is gone, recreate it from the PR head, not from main: `git -C __WORKSPACE__/repos/<repo> fetch origin && git -C __WORKSPACE__/repos/<repo> worktree add <path> -b <branch> origin/<branch>`. If a local branch `<branch>` already exists, first check `git -C __WORKSPACE__/repos/<repo> branch -vv` shows it tracking `origin/<branch>` at the PR head; then add the worktree without `-b`.
+- Work and validate only in the worktree.
 - Finish: after the PR is pushed, leave the worktree in place (the branch is what matters). Remove it only when the PR is merged: `git -C __WORKSPACE__/repos/<repo> worktree remove /Volumes/code/yaup/worktrees/dioniso/<repo>-<n>`.
 - Never run `git checkout`, `git switch` or `git merge` in `repos/<repo>` itself, and never stash or clean there.
 - If `worktree add` fails because the branch exists elsewhere, skip the ticket and report it.
