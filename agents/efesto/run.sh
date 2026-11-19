@@ -47,6 +47,14 @@ ALLOWED=(
   "mcp__claude_ai_Slack__slack_send_message"
 )
 
+# Never switch, reset or stash in the shared checkouts under repos/: the owner works there.
+DENIED=(
+  "Bash(git checkout:*)" "Bash(git switch:*)" "Bash(git stash:*)" "Bash(git reset:*)" "Bash(git clean:*)"
+  "Bash(git restore:*)" "Bash(git pull:*)" "Bash(git rebase:*)" "Bash(git branch -D:*)" "Bash(git push --force:*)"
+  "Bash(git -C * checkout:*)" "Bash(git -C * switch:*)" "Bash(git -C * stash:*)" "Bash(git -C * reset:*)"
+  "Bash(git -C * clean:*)" "Bash(git -C * restore:*)" "Bash(git -C * pull:*)" "Bash(git -C * rebase:*)"
+  "Bash(git -C * push --force:*)"
+)
 STARTED=$(date +%s)
 RUN_NOTE="Run started at epoch $STARTED. End the last Slack message you send in this run with ' (took Xm Ys)', where the time is the output of date +%s minus $STARTED."
 claude -p "$(cat "$HERE/prompt.md")
@@ -54,6 +62,7 @@ claude -p "$(cat "$HERE/prompt.md")
 $RUN_NOTE" \
   --model claude-sonnet-5-5 --effort medium \
   --allowedTools "${ALLOWED[@]}" \
+  --disallowedTools "${DENIED[@]}" \
   --output-format json > "$log.json" 2> "$log"
 status=$?
 

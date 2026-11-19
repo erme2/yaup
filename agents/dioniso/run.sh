@@ -48,6 +48,14 @@ ALLOWED=(
   "mcp__claude_ai_Figma__whoami" "mcp__claude_ai_Figma__get_figma_skill" "mcp__claude_ai_Figma__create_session" "mcp__claude_ai_Figma__search_design_system" "mcp__claude_ai_Figma__get_libraries" "mcp__claude_ai_Figma__get_design_context" "mcp__claude_ai_Figma__get_screenshot" "mcp__claude_ai_Figma__get_metadata" "mcp__claude_ai_Figma__get_variable_defs" "mcp__claude_ai_Figma__get_code_connect_map" "mcp__claude_ai_Figma__use_figma" "mcp__claude_ai_Figma__get_comments"
 )
 
+# Never switch, reset or stash in the shared checkouts under repos/: the owner works there.
+DENIED=(
+  "Bash(git checkout:*)" "Bash(git switch:*)" "Bash(git stash:*)" "Bash(git reset:*)" "Bash(git clean:*)"
+  "Bash(git restore:*)" "Bash(git pull:*)" "Bash(git rebase:*)" "Bash(git branch -D:*)" "Bash(git push --force:*)"
+  "Bash(git -C * checkout:*)" "Bash(git -C * switch:*)" "Bash(git -C * stash:*)" "Bash(git -C * reset:*)"
+  "Bash(git -C * clean:*)" "Bash(git -C * restore:*)" "Bash(git -C * pull:*)" "Bash(git -C * rebase:*)"
+  "Bash(git -C * push --force:*)"
+)
 STARTED=$(date +%s)
 RUN_NOTE="Run started at epoch $STARTED. End the last Slack message you send in this run with ' (took Xm Ys)', where the time is the output of date +%s minus $STARTED."
 claude -p "$(cat "$HERE/prompt.md")
@@ -55,6 +63,7 @@ claude -p "$(cat "$HERE/prompt.md")
 $RUN_NOTE" \
   --model claude-sonnet-5-5 --effort medium \
   --allowedTools "${ALLOWED[@]}" \
+  --disallowedTools "${DENIED[@]}" \
   --output-format json > "$log.json" 2> "$log"
 status=$?
 
