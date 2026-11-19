@@ -29,6 +29,12 @@ Before acting on a pull request, check its checkout. If the working tree is clea
    - if the claim doesn't hold, reply on the PR with the evidence.
 
    Commit with the repository's title convention, push to the PR branch, and reply on the comment. Never force push. Every fix Apollo makes is committed and pushed in the same run, so the next review sees it. Never leave an Apollo fix uncommitted in a checkout: if validation fails, revert the fix instead of stopping with the edit in place.
+
+   **Dirty checkout.** Before editing, compare `git status` with the files Apollo itself changed in an earlier run (the `changed:` lines of its log entry for that PR). Only those files, and only if they belong to the PR's diff, count as Apollo's own work:
+   - finish it: validate, commit, push and reply, as above, if the change is complete and validation passes;
+   - drop it: if the change is incomplete or validation fails, restore the tracked files with `git checkout -- <file>` and delete untracked files only if Apollo created them in that run; then continue as normal.
+   Anything else in the checkout (other files, untracked files Apollo didn't create, changes outside the PR's diff) belongs to the owner: leave it, skip the PR and report it as `STOPPED: <repo> checkout dirty (<files>)`. Never stash, reset or delete the owner's changes.
+   Log every change Apollo makes as a `changed: <repo>#<n> <files>` line in its summary, so a later run can tell its own work apart.
 5. **Re-check after pushing.** Let CI run. Merge only on a later pass, once the rules in step 2 hold.
 
 ## Stopping

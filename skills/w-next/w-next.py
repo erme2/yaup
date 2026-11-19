@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Board snapshot for the Yaup `w-next` skill.
 
-Prints Markdown with four groups from a GitHub project board:
-recently merged PRs (green), blocked tickets (red), tickets in progress or in
-review (black), the queue the agents pick from (blue): the "Next in line" column,
-and the next Todo items to queue (white), in board order, which follows the plan,
-or by priority label with --sort priority.
+Prints Markdown with five groups from a GitHub project board, in this order:
+the queue the agents pick from (blue): the "Next in line" column; blocked
+tickets, i.e. stopped (red); tickets in progress or in review (black); the next
+Todo items to queue (white), in board order, which follows the plan, or by
+priority label with --sort priority; and recently merged PRs (green).
 
 Usage: w-next.py [--owner erme2] [--project 14] [--merged 5] [--next 4] [--sort board|priority]
 """
@@ -85,17 +85,17 @@ def main():
         c = item["content"]
         return f"- {emoji} {ref(c)} {c.get('title', '')}{label_text(item['labels'])}{extra}"
 
-    out = ["### 🟢 Recently merged"]
-    out += [f"- 🟢 [{pr['repository']['name']}#{pr['number']}]({pr['url']}) {pr['title']} ({(pr.get('closedAt') or '')[:10]})"
-            for pr in merged[:args.merged]] or ["- none"]
-    out.append("\n### 🔴 Blocked")
+    out = ["### 🔵 Next in line (the agents pick from this column)"]
+    out += [line("🔵", i) for i in queue] or ["- none"]
+    out.append("\n### 🔴 Blocked (stopped)")
     out += [line("🔴", i, f" ({i['status']})" if i["status"] not in ("Todo", "blocked") else "") for i in sorted(blocked, key=lambda i: (priority(i["labels"]), i["position"]))] or ["- none"]
     out.append("\n### ⚫ In progress / in review")
     out += [line("⚫", i, f" ({i['status']})") for i in working] or ["- none"]
-    out.append("\n### 🔵 Next in line (the agents pick from this column)")
-    out += [line("🔵", i) for i in queue] or ["- none"]
     out.append(f"\n### ⚪ Todo, next {args.next} to queue (agents never pick these)")
     out += [line("⚪", i) for i in todo[:args.next]] or ["- none"]
+    out.append("\n### 🟢 Recently merged")
+    out += [f"- 🟢 [{pr['repository']['name']}#{pr['number']}]({pr['url']}) {pr['title']} ({(pr.get('closedAt') or '')[:10]})"
+            for pr in merged[:args.merged]] or ["- none"]
     print("\n".join(out))
 
 
