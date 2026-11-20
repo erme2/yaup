@@ -9,6 +9,36 @@ LOGS="$HERE/logs"
 LOCK="$HERE/run.lock"
 mkdir -p "$HERE"
 export PATH="$HOME/.local/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+# Shell guard: a git wrapper first on PATH refuses commands that switch or discard work in the
+# shared checkouts under repos/, including inside compound commands (cd ... && git checkout),
+# which the command allowlist cannot match.
+mkdir -p "$HERE/bin"
+sed "s#__WORKSPACE__#$WORKSPACE#g" > "$HERE/bin/git" <<'GITSHIM'
+#!/bin/bash
+# Refuses checkout, switch, stash, reset, clean, restore, pull and rebase in the shared checkouts.
+real=""
+for candidate in /usr/bin/git /opt/homebrew/bin/git /usr/local/bin/git; do
+  if [ -x "$candidate" ]; then real="$candidate"; break; fi
+done
+[ -n "$real" ] || { echo "git shim: no git found" >&2; exit 127; }
+args=("$@")
+dir="$PWD"
+i=0
+if [ "${args[0]-}" = "-C" ]; then dir="${args[1]-}"; i=2; fi
+sub="${args[$i]-}"
+case "$sub" in
+  checkout|switch|stash|reset|clean|restore|pull|rebase)
+    abs=$(cd "$dir" 2>/dev/null && pwd -P) || abs="$dir"
+    case "$abs" in
+      __WORKSPACE__/repos/*)
+        echo "git shim: '$sub' is not allowed in the shared checkout $abs; work in your own worktree (see Worktrees)." >&2
+        exit 1 ;;
+    esac ;;
+esac
+exec "$real" "$@"
+GITSHIM
+chmod +x "$HERE/bin/git"
+export PATH="$HERE/bin:$PATH"
 # Node from nvm's default version when nvm is installed: Homebrew's node breaks when Homebrew upgrades a library it links.
 if [ -s "$HOME/.nvm/nvm.sh" ]; then
   nvm_node=$(bash -c '. "$HOME/.nvm/nvm.sh" --no-use && nvm which default' 2>/dev/null)
