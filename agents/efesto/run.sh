@@ -32,7 +32,11 @@ while [ $i -lt $n ]; do
   case "$a" in
     -C) i=$((i+1)); next="${args[$i]-}"; case "$next" in /*) dir="$next" ;; *) dir="$dir/$next" ;; esac ;;
     -C?*) next="${a#-C}"; case "$next" in /*) dir="$next" ;; *) dir="$dir/$next" ;; esac ;;
-    -c|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix|--config-env) i=$((i+1)) ;;
+    --work-tree) i=$((i+1)); dir="${args[$i]-}" ;;
+    --work-tree=*) dir="${a#--work-tree=}" ;;
+    --git-dir) i=$((i+1)); g="${args[$i]-}"; dir="${g%/.git}" ;;
+    --git-dir=*) g="${a#--git-dir=}"; dir="${g%/.git}" ;;
+    -c|--namespace|--exec-path|--super-prefix|--config-env) i=$((i+1)) ;;
     -*) ;;
     *) sub="$a"; break ;;
   esac
