@@ -22,10 +22,22 @@ for candidate in /usr/bin/git /opt/homebrew/bin/git /usr/local/bin/git; do
 done
 [ -n "$real" ] || { echo "git shim: no git found" >&2; exit 127; }
 args=("$@")
+n=${#args[@]}
 dir="$PWD"
+sub=""
 i=0
-if [ "${args[0]-}" = "-C" ]; then dir="${args[1]-}"; i=2; fi
-sub="${args[$i]-}"
+# Skip git's global options wherever they come before the subcommand; -C moves the directory.
+while [ $i -lt $n ]; do
+  a="${args[$i]}"
+  case "$a" in
+    -C) i=$((i+1)); next="${args[$i]-}"; case "$next" in /*) dir="$next" ;; *) dir="$dir/$next" ;; esac ;;
+    -C?*) next="${a#-C}"; case "$next" in /*) dir="$next" ;; *) dir="$dir/$next" ;; esac ;;
+    -c|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix|--config-env) i=$((i+1)) ;;
+    -*) ;;
+    *) sub="$a"; break ;;
+  esac
+  i=$((i+1))
+done
 case "$sub" in
   checkout|switch|stash|reset|clean|restore|pull|rebase)
     abs=$(cd "$dir" 2>/dev/null && pwd -P) || abs="$dir"
