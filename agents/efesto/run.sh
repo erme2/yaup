@@ -42,8 +42,19 @@ while [ $i -lt $n ]; do
   esac
   i=$((i+1))
 done
-case "$sub" in
-  checkout|switch|stash|reset|clean|restore|pull|rebase)
+# Resolve a Git alias (alias.co = checkout) to the command it runs; a shell alias (!...) is treated as mutating.
+eff="$sub"
+if [ -n "$sub" ]; then
+  alias_val=$(cd "$dir" 2>/dev/null && "$real" config --get "alias.$sub" 2>/dev/null) || alias_val=""
+  if [ -n "$alias_val" ]; then
+    case "$alias_val" in
+      !*) eff="!shell" ;;
+      *) eff="${alias_val%% *}" ;;
+    esac
+  fi
+fi
+case "$eff" in
+  checkout|switch|stash|reset|clean|restore|pull|rebase|!shell)
     abs=$(cd "$dir" 2>/dev/null && pwd -P) || abs="$dir"
     case "$abs" in
       __WORKSPACE__/repos/*)
