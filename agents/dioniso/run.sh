@@ -9,6 +9,69 @@ LOGS="$HERE/logs"
 LOCK="$HERE/run.lock"
 mkdir -p "$HERE"
 export PATH="$HOME/.local/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+# Shell guard: a git wrapper first on PATH refuses commands that switch or discard work in the
+# shared checkouts under repos/, including inside compound commands (cd ... && git checkout),
+# which the command allowlist cannot match.
+mkdir -p "$HERE/bin"
+sed "s#__WORKSPACE__#$WORKSPACE#g" > "$HERE/bin/git" <<'GITSHIM'
+#!/bin/bash
+# Refuses checkout, switch, stash, reset, clean, restore, pull and rebase in the shared checkouts.
+real=""
+for candidate in /usr/bin/git /opt/homebrew/bin/git /usr/local/bin/git; do
+  if [ -x "$candidate" ]; then real="$candidate"; break; fi
+done
+[ -n "$real" ] || { echo "git shim: no git found" >&2; exit 127; }
+args=("$@")
+n=${#args[@]}
+dir="$PWD"
+sub=""
+config_args=()
+i=0
+# Skip git's global options wherever they come before the subcommand; -C moves the directory.
+while [ $i -lt $n ]; do
+  a="${args[$i]}"
+  case "$a" in
+    -C) i=$((i+1)); next="${args[$i]-}"; case "$next" in /*) dir="$next" ;; *) dir="$dir/$next" ;; esac ;;
+    -C?*) next="${a#-C}"; case "$next" in /*) dir="$next" ;; *) dir="$dir/$next" ;; esac ;;
+    --work-tree) i=$((i+1)); dir="${args[$i]-}" ;;
+    --work-tree=*) dir="${a#--work-tree=}" ;;
+    --git-dir) i=$((i+1)); g="${args[$i]-}"; dir="${g%/.git}" ;;
+    --git-dir=*) g="${a#--git-dir=}"; dir="${g%/.git}" ;;
+    -c) i=$((i+1)); config_args+=("-c" "${args[$i]-}") ;;
+    -c?*) config_args+=("-c" "${a#-c}") ;;
+    --config-env) i=$((i+1)); config_args+=("--config-env" "${args[$i]-}") ;;
+    --config-env=*) config_args+=("$a") ;;
+    --namespace|--exec-path|--super-prefix) i=$((i+1)) ;;
+    -*) ;;
+    *) sub="$a"; break ;;
+  esac
+  i=$((i+1))
+done
+# Resolve a Git alias (alias.co = checkout) to the command it runs; a shell alias (!...) is treated as mutating.
+eff="$sub"
+if [ -n "$sub" ]; then
+  alias_val=$(cd "$dir" 2>/dev/null && "$real" "${config_args[@]}" config --get "alias.$sub" 2>/dev/null) || alias_val=""
+  if [ -n "$alias_val" ]; then
+    case "$alias_val" in
+      !*) eff="!shell" ;;
+      -*) eff="!shell" ;;
+      *) eff="${alias_val%% *}" ;;
+    esac
+  fi
+fi
+case "$eff" in
+  checkout|switch|stash|reset|clean|restore|pull|rebase|!shell)
+    abs=$(cd "$dir" 2>/dev/null && pwd -P) || abs="$dir"
+    case "$abs" in
+      __WORKSPACE__/repos/*)
+        echo "git shim: '$sub' is not allowed in the shared checkout $abs; work in your own worktree (see Worktrees)." >&2
+        exit 1 ;;
+    esac ;;
+esac
+exec "$real" "$@"
+GITSHIM
+chmod +x "$HERE/bin/git"
+export PATH="$HERE/bin:$PATH"
 # Node from nvm's default version when nvm is installed: Homebrew's node breaks when Homebrew upgrades a library it links.
 if [ -s "$HOME/.nvm/nvm.sh" ]; then
   nvm_node=$(bash -c '. "$HOME/.nvm/nvm.sh" --no-use && nvm which default' 2>/dev/null)
@@ -48,6 +111,14 @@ ALLOWED=(
   "mcp__claude_ai_Figma__whoami" "mcp__claude_ai_Figma__get_figma_skill" "mcp__claude_ai_Figma__create_session" "mcp__claude_ai_Figma__search_design_system" "mcp__claude_ai_Figma__get_libraries" "mcp__claude_ai_Figma__get_design_context" "mcp__claude_ai_Figma__get_screenshot" "mcp__claude_ai_Figma__get_metadata" "mcp__claude_ai_Figma__get_variable_defs" "mcp__claude_ai_Figma__get_code_connect_map" "mcp__claude_ai_Figma__use_figma" "mcp__claude_ai_Figma__get_comments"
 )
 
+# Never switch, reset or stash in the shared checkouts under repos/: the owner works there.
+DENIED=(
+  "Bash(git checkout:*)" "Bash(git switch:*)" "Bash(git stash:*)" "Bash(git reset:*)" "Bash(git clean:*)"
+  "Bash(git restore:*)" "Bash(git pull:*)" "Bash(git rebase:*)" "Bash(git branch -D:*)" "Bash(git push --force:*)"
+  "Bash(git -C * checkout:*)" "Bash(git -C * switch:*)" "Bash(git -C * stash:*)" "Bash(git -C * reset:*)"
+  "Bash(git -C * clean:*)" "Bash(git -C * restore:*)" "Bash(git -C * pull:*)" "Bash(git -C * rebase:*)"
+  "Bash(git -C * push --force:*)"
+)
 STARTED=$(date +%s)
 RUN_NOTE="Run started at epoch $STARTED. End the last Slack message you send in this run with ' (took Xm Ys)', where the time is the output of date +%s minus $STARTED."
 claude -p "$(cat "$HERE/prompt.md")
@@ -55,6 +126,7 @@ claude -p "$(cat "$HERE/prompt.md")
 $RUN_NOTE" \
   --model claude-sonnet-5-5 --effort medium \
   --allowedTools "${ALLOWED[@]}" \
+  --disallowedTools "${DENIED[@]}" \
   --output-format json > "$log.json" 2> "$log"
 status=$?
 
