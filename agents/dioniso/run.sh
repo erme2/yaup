@@ -25,6 +25,7 @@ args=("$@")
 n=${#args[@]}
 dir="$PWD"
 sub=""
+config_args=()
 i=0
 # Skip git's global options wherever they come before the subcommand; -C moves the directory.
 while [ $i -lt $n ]; do
@@ -36,7 +37,11 @@ while [ $i -lt $n ]; do
     --work-tree=*) dir="${a#--work-tree=}" ;;
     --git-dir) i=$((i+1)); g="${args[$i]-}"; dir="${g%/.git}" ;;
     --git-dir=*) g="${a#--git-dir=}"; dir="${g%/.git}" ;;
-    -c|--namespace|--exec-path|--super-prefix|--config-env) i=$((i+1)) ;;
+    -c) i=$((i+1)); config_args+=("-c" "${args[$i]-}") ;;
+    -c?*) config_args+=("-c" "${a#-c}") ;;
+    --config-env) i=$((i+1)); config_args+=("--config-env" "${args[$i]-}") ;;
+    --config-env=*) config_args+=("$a") ;;
+    --namespace|--exec-path|--super-prefix) i=$((i+1)) ;;
     -*) ;;
     *) sub="$a"; break ;;
   esac
@@ -45,10 +50,11 @@ done
 # Resolve a Git alias (alias.co = checkout) to the command it runs; a shell alias (!...) is treated as mutating.
 eff="$sub"
 if [ -n "$sub" ]; then
-  alias_val=$(cd "$dir" 2>/dev/null && "$real" config --get "alias.$sub" 2>/dev/null) || alias_val=""
+  alias_val=$(cd "$dir" 2>/dev/null && "$real" "${config_args[@]}" config --get "alias.$sub" 2>/dev/null) || alias_val=""
   if [ -n "$alias_val" ]; then
     case "$alias_val" in
       !*) eff="!shell" ;;
+      -*) eff="!shell" ;;
       *) eff="${alias_val%% *}" ;;
     esac
   fi
