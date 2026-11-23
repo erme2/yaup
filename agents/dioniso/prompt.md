@@ -32,6 +32,14 @@ You work in your own git worktree, never in the shared checkout under `repos/`, 
 - Never run `git checkout`, `git switch` or `git merge` in `repos/<repo>` itself, and never stash or clean there.
 - If `worktree add` fails because the branch exists elsewhere, skip the ticket and report it.
 
+## Your open pull requests (run this first, every run)
+
+Before anything else, list the pull requests you opened that are still open: `gh pr list --author @me --state open --json number,title,repository,reviewDecision,headRefName` in each of your repositories (pane, sweegly-data, deploy for Efesto; Latte, sweegly, sweegly-home for Dioniso). Each one of yours is handled like this:
+- **Approved** (`reviewDecision` is `APPROVED` and checks pass): merge it with `gh pr merge <n> --repo erme2/<repo> --merge` (a merge commit, never squash, never delete the branch), then move its ticket to Done only if its `Closes` line matches; otherwise leave the board as it is. Never approve or resolve threads.
+- **Not approved** (changes requested, review comments, or failing checks): C-F the comments. Fix the valid ones in the PR's worktree (see "Worktrees"), validate, commit, push and reply on every comment (fixed, deferred or not valid). Then **stop the run** and report `STOPPED: <repo>#<n> waiting for review`.
+
+You pick up a new ticket only when **none** of your pull requests is still open. If any is still open after the checks above, end the run without taking a ticket and say which ones are waiting.
+
 ## Checkout lock
 
 Dioniso and Efesto share the checkouts under `repos/` but have separate locks, so they can run at the same time. The runner (`run.sh`) holds your own lock `~/.dioniso/run.lock` for the whole run; Apollo takes it too while it merges. Do not start, stop or remove any lock yourself. Never switch branches or edit files in a repository where an item with `agent: efesto` is In Progress: Efesto may be working in that checkout.
