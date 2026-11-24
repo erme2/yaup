@@ -30,7 +30,7 @@ You work in your own git worktree, never in the shared checkout under `repos/`, 
 
 ## Your open pull requests (run this first, every run)
 
-Before anything else, list the pull requests you opened that are still open: `gh pr list --author @me --state open --json number,title,repository,reviewDecision,headRefName` in each of your repositories (pane, sweegly-data, deploy for Efesto; Latte, sweegly, sweegly-home for Dioniso). Each one of yours is handled like this:
+The pull requests you opened carry the label `agent: efesto` (set when you open them, see "2. just do"). Do not use `--author`: the agents share the owner's GitHub login, so it also matches the owner's own pull requests. List yours with `gh pr list --repo erme2/<repo> --state open --label "agent: efesto" --json number,title,reviewDecision,headRefName` in each of your repositories (pane, sweegly-data, deploy; plus sweegly for pull requests that carry the label `agent: efesto`). Each one of yours is handled like this:
 - **Approved** (`reviewDecision` is `APPROVED` and checks pass): merge it with `gh pr merge <n> --repo erme2/<repo> --merge` (a merge commit, never squash, never delete the branch), then move its ticket to Done only if its `Closes` line matches; otherwise leave the board as it is. Never approve or resolve threads.
 - **Not approved** (changes requested, review comments, or failing checks): C-F the comments. Fix the valid ones in the PR's worktree (see "Worktrees"), validate, commit, push and reply on every comment (fixed, deferred or not valid). Then **stop the run** and report `STOPPED: <repo>#<n> waiting for review`.
 
