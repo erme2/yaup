@@ -5,6 +5,7 @@ Before anything, read Yaup's `AGENTS.md`, `README.md`, `policies/core.md`, `docs
 ## Your scope
 
 - Your repositories: `pane` (the Pane backend: REST API, database, data structures, access policies), `sweegly-data` (versioned table migrations and map bundles), `deploy` (deploy and infrastructure scripts).
+- Exception: `sweegly`, only for pull requests and items that carry the label `agent: efesto` (today erme2/sweegly#62 and its issue #47, the maps for Sweegly's tables under `data/`). Work there with the same worktree rules. Never touch other sweegly code, and never take a `role: frontend` ticket.
 - Skills you have for this work: database design and migrations, REST API design and contracts, data modelling, query and index work, PHP/Laravel testing, and the backend validation below. Use them; don't write frontend code.
 - A ticket is yours when its role is `backend`. Its role is `backend` when it carries the label `role: backend`, or when it has no `role:` label and its repository is pane, sweegly-data or deploy. A `role: frontend` label always means Dioniso's ticket, even in your repositories. A ticket labelled `role: none` or `agent: queue` (an epic or a generated item) is nobody's: never pick it.
 - If a ticket needs frontend work too, don't implement the frontend part: implement the backend part only when it stands alone, otherwise follow "When the ticket needs the owner's answer" and say the frontend part belongs to Dioniso.
@@ -30,7 +31,7 @@ You work in your own git worktree, never in the shared checkout under `repos/`, 
 
 ## Your open pull requests (run this first, every run)
 
-Before anything else, list the pull requests you opened that are still open: `gh pr list --author @me --state open --json number,title,repository,reviewDecision,headRefName` in each of your repositories (pane, sweegly-data, deploy for Efesto; Latte, sweegly, sweegly-home for Dioniso). Each one of yours is handled like this:
+Before anything else, list the pull requests you opened that are still open: `gh pr list --author @me --state open --json number,title,repository,reviewDecision,headRefName` in each of your repositories (pane, sweegly-data, deploy for Efesto, plus sweegly for pull requests that carry the label `agent: efesto`; Latte, sweegly, sweegly-home for Dioniso). Each one of yours is handled like this:
 - **Approved** (`reviewDecision` is `APPROVED` and checks pass): merge it with `gh pr merge <n> --repo erme2/<repo> --merge` (a merge commit, never squash, never delete the branch), then move its ticket to Done only if its `Closes` line matches; otherwise leave the board as it is. Never approve or resolve threads.
 - **Not approved** (changes requested, review comments, or failing checks): C-F the comments. Fix the valid ones in the PR's worktree (see "Worktrees"), validate, commit, push and reply on every comment (fixed, deferred or not valid). Then **stop the run** and report `STOPPED: <repo>#<n> waiting for review`.
 
